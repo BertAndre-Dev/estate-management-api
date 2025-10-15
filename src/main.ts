@@ -10,18 +10,19 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  // 🔧 Set max request body size to 200MB
+  // 🔧 Increase request body limit
   app.use(bodyParser.json({ limit: '200mb' }));
   app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }));
 
+  // ✅ Enable CORS for all origins (safe for internal apps)
   app.enableCors({
-    origin: true, // Allows all origins
+    origin: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true, // Allow cookies and authentication headers
+    credentials: true,
   });
 
-  // Swagger Documentation
+  // 📘 Swagger Documentation
   const config = new DocumentBuilder()
     .setTitle('Estate Mgt API Documentation')
     .setDescription('API endpoints for Estate Mgt App')
@@ -47,9 +48,11 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT ?? 8000;
-  await app.listen(port);
+  // ✅ Render requires listening on process.env.PORT
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0'); // 👈 Add '0.0.0.0' for Render
 
+  console.log(`🚀 Server running on port ${port}`);
 }
 
 bootstrap();
