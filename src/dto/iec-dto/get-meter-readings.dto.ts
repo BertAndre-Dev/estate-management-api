@@ -10,7 +10,4 @@ export class GetMeterReadingsDto {
   @IsString()
   obis: string;
 
-  @ApiProperty({ example: 'token_xyz', description: 'HES session token' })
-  @IsString()
-  token: string;
 }

@@ -3,5 +3,4 @@ export declare class HistoryDataDto {
     dTypeID: string;
     start: string;
     end: string;
-    token: string;
 }

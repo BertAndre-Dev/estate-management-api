@@ -90,22 +90,22 @@ let IecCallbackController = IecCallbackController_1 = class IecCallbackControlle
             this.logger.error('Error processing MeterReadings payload', err);
         }
         const ackXml = `<?xml version="1.0" encoding="UTF-8"?>
-<ResponseMessage xmlns="http://iec.ch/TC57/2011/schema/message">
-  <Header>
-    <Verb>reply</Verb>
-    <Noun>CallbackAck</Noun>
-    <Timestamp>${new Date().toISOString()}</Timestamp>
-    <Source>MDM</Source>
-    <AsyncReplyFlag>false</AsyncReplyFlag>
-    <MessageID>${messageId ?? 'UNKNOWN'}</MessageID>
-    <CorrelationID>${messageId ?? 'UNKNOWN'}</CorrelationID>
-    <Revision>2</Revision>
-  </Header>
-  <Reply>
-    <Result>OK</Result>
-    <Error><code>0.0</code></Error>
-  </Reply>
-</ResponseMessage>`;
+    <ResponseMessage xmlns="http://iec.ch/TC57/2011/schema/message">
+      <Header>
+        <Verb>reply</Verb>
+        <Noun>CallbackAck</Noun>
+        <Timestamp>${new Date().toISOString()}</Timestamp>
+        <Source>MDM</Source>
+        <AsyncReplyFlag>false</AsyncReplyFlag>
+        <MessageID>${messageId ?? 'UNKNOWN'}</MessageID>
+        <CorrelationID>${messageId ?? 'UNKNOWN'}</CorrelationID>
+        <Revision>2</Revision>
+      </Header>
+      <Reply>
+        <Result>OK</Result>
+        <Error><code>0.0</code></Error>
+      </Reply>
+    </ResponseMessage>`;
         res.setHeader('Content-Type', 'application/xml');
         return res.status(200).send(ackXml);
     }

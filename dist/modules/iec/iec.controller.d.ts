@@ -7,9 +7,6 @@ import { DetailsMeterDto } from '../../dto/iec-dto/details-meter.dto';
 export declare class IecController {
     private readonly iecClient;
     constructor(iecClient: IecClientService);
-    debugToken(): Promise<{
-        message: string;
-    }>;
     getMeterReadings(dto: GetMeterReadingsDto): Promise<{
         noun: string;
         messageId: string;

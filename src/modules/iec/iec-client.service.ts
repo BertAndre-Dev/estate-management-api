@@ -41,7 +41,11 @@ export class IecClientService {
 
     const resp = await this.postRequest('GetUserToken', payload);
     const ack: any = resp?.ack;
-    const token = ack?.Payload?.tokenValue ?? ack?.Reply?.tokenValue;
+    const token =
+      ack?.Payload?.['m:GetUserToken']?.['m:Authorization'] ||
+      ack?.Payload?.GetUserToken?.Authorization ||
+      ack?.Payload?.Authorization;
+
 
     this.hesToken = token;
     this.hesTokenFetchedAt = now;
@@ -53,15 +57,25 @@ export class IecClientService {
   /**
    * Correct IEC Verb Rules (from spec)
    */
+  // private resolveVerb(noun: string): 'get' | 'create' {
+  //   switch (noun) {
+  //     case 'GetUserToken':
+  //     case 'EndDeviceControls':
+  //       return 'create';
+  //     default:
+  //       return 'get';
+  //   }
+  // }
+
   private resolveVerb(noun: string): 'get' | 'create' {
     switch (noun) {
-      case 'GetUserToken':
       case 'EndDeviceControls':
         return 'create';
       default:
         return 'get';
     }
   }
+
 
   /**
    * Generic IEC Request Sender

@@ -26,9 +26,6 @@ let IecController = class IecController {
     constructor(iecClient) {
         this.iecClient = iecClient;
     }
-    async debugToken() {
-        return { message: 'Token is handled internally now' };
-    }
     async getMeterReadings(dto) {
         return this.iecClient.getMeterReadings(dto.meterNumber, dto.obis);
     }
@@ -49,13 +46,6 @@ let IecController = class IecController {
     }
 };
 exports.IecController = IecController;
-__decorate([
-    (0, swagger_1.ApiOperation)({ summary: 'Get HES authentication token (for debugging only)' }),
-    (0, common_1.Post)('auth/token'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], IecController.prototype, "debugToken", null);
 __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Read real-time meter data (OBIS reading)' }),
     (0, common_1.Post)('meter/readings'),

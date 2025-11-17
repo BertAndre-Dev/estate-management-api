@@ -15,7 +15,6 @@ const class_validator_1 = require("class-validator");
 class GetMeterReadingsDto {
     meterNumber;
     obis;
-    token;
 }
 exports.GetMeterReadingsDto = GetMeterReadingsDto;
 __decorate([
@@ -28,9 +27,4 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], GetMeterReadingsDto.prototype, "obis", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({ example: 'token_xyz', description: 'HES session token' }),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], GetMeterReadingsDto.prototype, "token", void 0);
 //# sourceMappingURL=get-meter-readings.dto.js.map

@@ -7,7 +7,7 @@ import { DisconnectMeterDto } from '../../dto/iec-dto/disconnect-meter.dto';
 import { ReconnectMeterDto } from '../../dto/iec-dto/reconnect-meter.dto';
 import { HistoryDataDto } from '../../dto/iec-dto/history-data.dto';
 import { DetailsMeterDto } from '../../dto/iec-dto/details-meter.dto';
-import { PageMetersDto } from '../../dto/iec-dto/page-meters.dto';
+
 
 @ApiTags('IEC Smart Metering')
 @Controller('iec')
@@ -16,12 +16,12 @@ export class IecController {
 
     // -------------------------------------------------------------------
     // OPTIONAL: Keep only if you want to test token generation manually.
-    @ApiOperation({ summary: 'Get HES authentication token (for debugging only)' })
-    @Post('auth/token')
-    async debugToken() {
-        // NOTICE: now using the private token generator internally
-        return { message: 'Token is handled internally now' };
-    }
+    // @ApiOperation({ summary: 'Get HES authentication token (for debugging only)' })
+    // @Post('auth/token')
+    // async debugToken() {
+    //     // NOTICE: now using the private token generator internally
+    //     return { message: 'Token is handled internally now' };
+    // }
 
     // -------------------------------------------------------------------
     @ApiOperation({ summary: 'Read real-time meter data (OBIS reading)' })

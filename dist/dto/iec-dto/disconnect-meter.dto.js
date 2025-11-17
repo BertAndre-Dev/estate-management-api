@@ -14,7 +14,6 @@ const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class DisconnectMeterDto {
     meterNumber;
-    token;
 }
 exports.DisconnectMeterDto = DisconnectMeterDto;
 __decorate([
@@ -22,9 +21,4 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], DisconnectMeterDto.prototype, "meterNumber", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({ example: 'token_xyz', description: 'HES session token' }),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], DisconnectMeterDto.prototype, "token", void 0);
 //# sourceMappingURL=disconnect-meter.dto.js.map

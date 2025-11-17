@@ -44,7 +44,9 @@ let IecClientService = IecClientService_1 = class IecClientService {
         };
         const resp = await this.postRequest('GetUserToken', payload);
         const ack = resp?.ack;
-        const token = ack?.Payload?.tokenValue ?? ack?.Reply?.tokenValue;
+        const token = ack?.Payload?.['m:GetUserToken']?.['m:Authorization'] ||
+            ack?.Payload?.GetUserToken?.Authorization ||
+            ack?.Payload?.Authorization;
         this.hesToken = token;
         this.hesTokenFetchedAt = now;
         this.logger.log(`🔐 New HES token acquired`);
@@ -52,7 +54,6 @@ let IecClientService = IecClientService_1 = class IecClientService {
     }
     resolveVerb(noun) {
         switch (noun) {
-            case 'GetUserToken':
             case 'EndDeviceControls':
                 return 'create';
             default:

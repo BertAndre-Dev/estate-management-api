@@ -17,7 +17,6 @@ class HistoryDataDto {
     dTypeID;
     start;
     end;
-    token;
 }
 exports.HistoryDataDto = HistoryDataDto;
 __decorate([
@@ -40,9 +39,4 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], HistoryDataDto.prototype, "end", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({ example: 'token_xyz', description: 'HES session token' }),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], HistoryDataDto.prototype, "token", void 0);
 //# sourceMappingURL=history-data.dto.js.map

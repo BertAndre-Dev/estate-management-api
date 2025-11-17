@@ -17,8 +17,4 @@ export class HistoryDataDto {
   @ApiProperty({ example: '2024-01-02 00:00:00', description: 'End date (yyyy-MM-dd HH:mm:ss)' })
   @IsString()
   end: string;
-
-  @ApiProperty({ example: 'token_xyz', description: 'HES session token' })
-  @IsString()
-  token: string;
 }
