@@ -104,21 +104,37 @@ export class AddressMgtController {
     }
 
 
-    @Get('field/:estateId')
+    // @Get('estate/:estateId/fields')
+    // @Roles(Role.ADMIN, Role.SUPERADMIN, Role.RESIDENT)
+    // @ApiOperation({
+    //     summary: 'Get address field by estate',
+    //     description: 'This API gets an exisitng address field by estate'
+    // })
+    // async getAddressFieldsByEstate(
+    //     @Param('estateId') id: string,
+    // ) {
+    //     try {
+    //     return this.address.getAddressFieldsByEstate(id);
+    //     } catch (error) {
+    //     throw new BadRequestException(error.message);
+    //     }
+    // }
+
+
+    @Get('estate/:estateId/fields')
     @Roles(Role.ADMIN, Role.SUPERADMIN, Role.RESIDENT)
     @ApiOperation({
-        summary: 'Get address field by estate',
-        description: 'This API gets an exisitng address field by estate'
+        summary: 'Get address fields by estate',
+        description: 'This API retrieves all address fields for a given estate.'
     })
-    async getAddressFieldsByEstate(
-        @Param('estateId') id: string,
-    ) {
+    async getAddressFieldsByEstate(@Param('estateId') id: string) {
         try {
-        return this.address.getAddressFieldsByEstate(id);
+            return this.address.getAddressFieldsByEstate(id);
         } catch (error) {
-        throw new BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
+
 
 
     @Post('entry')
@@ -199,25 +215,41 @@ export class AddressMgtController {
     }
 
 
-    @Get('estate-entries')
+    @Get('field-entries')
     @Roles(Role.SUPERADMIN, Role.ADMIN)
     @ApiOperation({
         summary: 'Retrieve all the entry via fields',
-        description: 'This API allows admins to retrieve all estate entries.'
+        description: 'This API allows admins to retrieve all field entries.'
     })
     async getAllEstateAddressEntries(
-        @Query('estateId') estateId: string,
+        @Query('fieldId') fieldId: string,
         @Query('page') page: number,
         @Query('limit') limit: number,
     ) {
         try {
             return this.address.getAllEstateAddressEntries(
-            estateId,
+            fieldId,
             page,
             limit,
         );
         } catch (error) {
             throw new BadRequestException(error.message);
+        }
+    }
+
+
+    @Get('entry/:fieldId/stats')
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @ApiOperation({
+        summary: 'Get dynamic statistics for entries in a field',
+        description:
+        'This API dynamically generates statistics (like total counts) for entries under a specific address field.',
+    })
+    async getAddressEntryStats(@Param('fieldId') fieldId: string) {
+        try {
+        return this.address.getAddressEntryStats(fieldId);
+        } catch (error) {
+        throw new BadRequestException(error.message);
         }
     }
     

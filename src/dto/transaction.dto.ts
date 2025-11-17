@@ -33,7 +33,10 @@ export class CreateTransactionDto {
   @IsString()
   description: string;
 
-  @ApiProperty({ description: 'ID of the user performing this transaction' })
+  @ApiProperty({ 
+    description: 'ID of the user performing this transaction',
+    example: "690e0bb8f06f05175db9cd85"
+  })
   @IsNotEmpty()
   @IsString()
   userId: string;

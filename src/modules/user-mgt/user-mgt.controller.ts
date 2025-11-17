@@ -8,6 +8,7 @@ import {
   Get,
   Query,
   Delete,
+  Req
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -86,30 +87,28 @@ export class UserMgtController {
     }
 
 
-    @Get('/:estateId')
-    @Roles(Role.ADMIN, Role.SUPERADMIN, Role.RESIDENT)
+    @Get('/estate/:estateId')
+    @Roles(Role.ADMIN, Role.SUPERADMIN) 
     @ApiOperation({
         summary: 'Get users by estate',
-        description: 'This API gets an exisitng users by estate'
+        description: 'Retrieve users by estate filtered based on requester role'
     })
-    @ApiQuery({ name: 'estateId', required: true})
-    @ApiQuery({ name: 'page', required: true})
-    @ApiQuery({ name: 'limit', required: true})
-    @ApiQuery({ name: 'role', required: true})
-    @ApiQuery({ name: 'search', required: false})
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     async getUsersByEstate(
-        @Query('estateId') estateId: string,
-        @Query('page') page: number,
-        @Query('limit') limit: number,
-        @Query('role') role: string,
-        @Query('search') search: string,
+        @Param('estateId') estateId: string,
+        @Query('page') page: number = 1,
+        @Query('limit') limit: number = 10,
+        @Req() req: any, // ✅ Pull role from authenticated request
     ) {
         try {
-            return this.user.getUsersByEstate(estateId, role, page, limit, search);
+            const requesterRole = req.user.role;    // e.g., 'admin' or 'superadmin'
+            return this.user.getUsersByEstate(estateId, requesterRole, page, limit);
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
+
 
 
     @Put('update-password/:id')

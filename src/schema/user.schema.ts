@@ -37,10 +37,8 @@ export class User {
     @Prop()
     addressId?: string;
 
-    @Prop({
-        required: true
-    })
-    estateId: string;
+    @Prop()
+    estateId?: string;
 
     @Prop()
     pinHash: string;
@@ -71,6 +69,11 @@ export class User {
         default: false
     })
     serviceCharge: boolean;
+
+    @Prop({
+        default: null
+    })
+    walletId?: string;
 
     @Prop({
         type: String,

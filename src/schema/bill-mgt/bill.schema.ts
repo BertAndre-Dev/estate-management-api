@@ -31,6 +31,11 @@ export class Bill {
         default: true 
     })
     isActive: boolean;
+
+    @Prop({ 
+        default: true 
+    })
+    isServiceCharge: boolean;
 }
 
 export const BillSchema = SchemaFactory.createForClass(Bill);

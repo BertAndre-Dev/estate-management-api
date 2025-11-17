@@ -1,15 +1,28 @@
+import mongoose from 'mongoose';
+import { Types } from 'mongoose';
+
 export function toResponseObject(doc: any): any {
   if (Array.isArray(doc)) {
     return doc.map(toResponseObject);
   }
 
   if (doc && typeof doc === 'object') {
-    // Handle Date objects properly
+    // Handle Date
     if (doc instanceof Date) {
       return doc.toISOString();
     }
 
-    // Convert Mongoose Map to plain object
+    // Handle Mongoose ObjectId
+    if (Types.ObjectId.isValid(doc) && doc.constructor.name === 'ObjectId') {
+      return doc.toString();
+    }
+
+    // Handle Buffer
+    if (Buffer.isBuffer(doc)) {
+      return doc.toString('utf-8'); // or 'base64' if binary
+    }
+
+    // Handle Map
     if (doc instanceof Map) {
       const obj: any = {};
       for (const [key, value] of doc.entries()) {
@@ -18,6 +31,7 @@ export function toResponseObject(doc: any): any {
       return obj;
     }
 
+    // Handle Mongoose Document
     const obj = doc._doc ? doc._doc : doc;
     const transformed: any = {};
 
@@ -27,9 +41,6 @@ export function toResponseObject(doc: any): any {
 
         if (key === '_id') {
           transformed['id'] = value.toString();
-        } else if (key === 'data') {
-          // Map 'data' (the entry data) to 'data' in the response, as a plain object
-          transformed['data'] = toResponseObject(value);
         } else {
           transformed[key] = toResponseObject(value);
         }

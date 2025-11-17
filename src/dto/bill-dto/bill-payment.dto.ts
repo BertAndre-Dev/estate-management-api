@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsNotEmpty } from 'class-validator';
+import {
+  IsEnum,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+} from 'class-validator';
+
 
 export class BillPaymentDto {
   @ApiProperty({
@@ -19,18 +26,27 @@ export class BillPaymentDto {
   userId: string;
 
   @ApiProperty({
-    example: '650ea321a1b2c3d4e5f67890',
-    description: 'The wallet ID from which the payment will be deducted',
+    example: '651fe8d1a1b2c3d4e5f67890',
+    description: 'The wallet ID of the user making the payment',
   })
   @IsMongoId()
   @IsNotEmpty()
   walletId: string;
 
-  @ApiProperty({
-    example: 'monthly',
-    description: 'The chosen payment frequency (monthly, quarterly, yearly)',
-    enum: ['monthly', 'quarterly', 'yearly'],
-  })
-  @IsEnum(['monthly', 'quarterly', 'yearly'])
+
+  @ApiProperty({ 
+    example: 'monthly', 
+    description: 'The chosen payment frequency (monthly, quarterly, yearly)', 
+    enum: ['monthly', 'quarterly', 'yearly'], 
+  }) 
+  @IsEnum(['monthly', 'quarterly', 'yearly']) 
   frequency: 'monthly' | 'quarterly' | 'yearly';
+
+  @ApiProperty({
+    example: 25000,
+    description: 'Amount paid for this bill payment',
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  amountPaid: number;
 }

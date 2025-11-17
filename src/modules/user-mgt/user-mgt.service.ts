@@ -5,7 +5,7 @@ import {
     UnauthorizedException
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { toResponseObject } from 'src/common/utils/transform.util';
 import { CloudinaryService } from 'src/common/utils/cloudinary/cloudinary.service';
 import { User, UserDocument } from 'src/schema/user.schema';
@@ -70,56 +70,51 @@ export class UserMgtService {
     }
 
 
-    // get users by estate
+    // get users by estate with role-based visibility
     async getUsersByEstate(
         estateId: string,
-        role: string, // required
-        page: number = 1,
-        limit: number = 10,
-        search?: string
+        requesterRole: string, // role of the logged-in user
+        page = 1,
+        limit = 10
     ) {
         try {
-            const allowedRoles = ['resident', 'admin', 'super admin', 'security'];
-
-            // Ensure role is valid
-            if (!allowedRoles.includes(role.toLowerCase())) {
-                throw new BadRequestException(
-                    `Invalid role specified. Allowed roles are: ${allowedRoles.join(', ')}`
-                );
-            }
-
-            const query: any = {
-                estateId,
-                role: role.toLowerCase(),
-            };
-
-            // Optional search by name or email
-            if (search) {
-                query.$or = [
-                    { firstName: { $regex: search, $options: 'i' } },
-                    { lastName: { $regex: search, $options: 'i' } },
-                    { email: { $regex: search, $options: 'i' } },
-                ];
+            if (!estateId || typeof estateId !== 'string') {
+                throw new BadRequestException('A valid estateId is required.');
             }
 
             const skip = (page - 1) * limit;
 
+            // Base query: filter by estateId
+            const query: Record<string, any> = { estateId: estateId.trim() };
+
+            // ✅ Admin can only see residents in their estate
+            if (requesterRole === 'admin') {
+                query.role = 'resident';
+            }
+
+            // ✅ Super admin can see all users in the estate (no additional filter)
+
             const [users, total] = await Promise.all([
-                this.userModel.find(query).skip(skip).limit(limit),
+                this.userModel
+                    .find(query)
+                    .sort({ createdAt: -1 })
+                    .skip(skip)
+                    .limit(limit),
+
                 this.userModel.countDocuments(query),
             ]);
 
-            const userResponses = users.map((user) => toResponseObject(user));
-
             return {
                 success: true,
-                message: `Users with role '${role}' retrieved successfully.`,
-                data: userResponses,
+                message: users.length
+                    ? 'Estate users retrieved successfully.'
+                    : 'No users found for this estate.',
+                data: toResponseObject(users),
                 pagination: {
                     total,
-                    currentPage: page,
-                    totalPages: Math.ceil(total / limit),
-                    pageSize: limit,
+                    page,
+                    limit,
+                    pages: Math.ceil(total / limit) || 1,
                 },
             };
         } catch (error) {

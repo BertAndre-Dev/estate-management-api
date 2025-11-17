@@ -10,11 +10,6 @@ export class FieldDto {
   @ApiProperty({ example: 'Block/Unit' })
   @IsString()
   key: string;
-
-  @ApiProperty({ example: 'text', enum: ['text', 'number', 'date', 'dropdown'] })
-  @IsString()
-  type: string;
-
 }
 
 
@@ -25,10 +20,13 @@ export class CreateFieldDto {
     estateId: string;
 
 
-    @ApiProperty({ type: [FieldDto] })
-    @IsArray()
+    @ApiProperty({ example: 'Address Name' })
+    @IsString()
     @IsNotEmpty()
-    @ValidateNested({ each: true })
-    @Type(() => FieldDto)
-    field: FieldDto[];
+    label: string;
+
+    @ApiProperty({ example: 'Block/Unit' })
+    @IsString()
+    @IsNotEmpty()
+    key: string;
 }

@@ -23,6 +23,7 @@ import { Roles } from 'src/common/decorators/roles.decorstor';
 import { Role } from 'src/common/enum/roles.enum';
 import { CreateBillDto } from 'src/dto/bill-dto/create-bill.dto';
 import { BillPaymentDto } from 'src/dto/bill-dto/bill-payment.dto';
+import { ServiceChargeGuard } from 'src/common/guards/service-charge.guard';
 
 
 @ApiTags('Bills Management')
@@ -35,7 +36,7 @@ export class BillsMgtController {
     ){}
 
     @Post('')
-    @Roles(Role.SUPERADMIN)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @ApiOperation({
         summary: 'Create bill',
         description: 'This API creates bills'
@@ -53,6 +54,7 @@ export class BillsMgtController {
 
     @Post('/pay')
     @Roles(Role.RESIDENT)
+    @UseGuards(ServiceChargeGuard)
     @ApiOperation({
         summary: 'Initialize bill payment',
         description: 'This API allows a resident to pay for a bill (monthly, quarterly, or yearly).'
@@ -66,7 +68,7 @@ export class BillsMgtController {
     }
 
     @Put('/:billId')
-    @Roles(Role.SUPERADMIN)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @ApiOperation({
         summary: 'Update bill details',
         description: 'This API updates an exisitng bill details'
@@ -84,7 +86,7 @@ export class BillsMgtController {
 
 
     @Delete('/:billId')
-    @Roles(Role.SUPERADMIN)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @ApiOperation({
         summary: 'Delete an existing bill',
         description: 'This API deletes an exisitng bill'
@@ -117,7 +119,7 @@ export class BillsMgtController {
     }
 
 
-    @Get('/:residentId')
+    @Get('/resident/:residentId')
     @Roles(Role.ADMIN, Role.SUPERADMIN, Role.RESIDENT)
     @ApiOperation({
         summary: 'Get resident\n\'s bill',
@@ -134,32 +136,30 @@ export class BillsMgtController {
     }
 
 
-    @Get('/:estateId')
-    @Roles(Role.SUPERADMIN)
+    @Get('/bills/:estateId')
+    @Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT)
     @ApiOperation({
         summary: 'Get all bill',
         description: 'This API gets an exisitng all bill by estate'
     })
-    @ApiQuery({ name: 'estateId', required: true})
     @ApiQuery({ name: 'page', required: true})
     @ApiQuery({ name: 'limit', required: true})
     @ApiQuery({ name: 'search', required: false})
     async getAllBill(
-        @Query('estateId') estateId: string,
+        @Param('estateId') estateId: string,
         @Query('page') page: number,
         @Query('limit') limit: number,
-        @Query('search') search: string,
     ) {
         try {
-        return this.bill.getBillsByEstate(estateId, page, limit, search);
+        return this.bill.getBillsByEstate(estateId, page, limit);
         } catch (error) {
         throw new BadRequestException(error.message);
         }
     }
 
 
-    @Put('/:billId/suspend-bill')
-    @Roles(Role.SUPERADMIN)
+    @Put('/:id/suspend-bill')
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @ApiOperation({
         summary: 'suspend a bill in the bill',
         description: 'This API suspends the bills in the bill'
@@ -175,8 +175,8 @@ export class BillsMgtController {
     }
 
 
-    @Put('/:billId/activate-bill')
-    @Roles(Role.SUPERADMIN)
+    @Put('/:id/activate-bill')
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @ApiOperation({
         summary: 'activate a bill in the bill',
         description: 'This API activates the bills in the bill'

@@ -10,6 +10,22 @@ export class InviteUserDto {
     @IsString()
     estateId: string;
 
+
+    @ApiProperty({ 
+        example: 'Tola', 
+        description: 'Resident first name' 
+    })
+    @IsString()
+    firstName: string;
+
+
+    @ApiProperty({ 
+        example: 'Bola', 
+        description: 'residents last name' 
+    })
+    @IsString()
+    lastName: string;
+
     @ApiProperty({ 
         example: '65e8e8d2d1c4a3c1a2b9e8f4', 
         description: 'User estate address id' 

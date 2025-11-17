@@ -43,9 +43,9 @@ export class EstateMgtController {
         @Body() dto: EstateDto
     ) {
         try {
-        return this.estate.createEstate(dto);
+            return this.estate.createEstate(dto);
         } catch (error) {
-        throw new BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
 

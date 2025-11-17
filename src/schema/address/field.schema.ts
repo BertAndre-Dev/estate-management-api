@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
-import { FieldItem } from "./field-items.schema";
+
 
 
 export type FieldDocument = Field & Document;
@@ -14,11 +14,15 @@ export class Field {
     })
     estateId: string;
 
-    @Prop({
-        type: [FieldItem],
-        default: []
+    @Prop({ 
+        required: true 
     })
-    field: FieldItem[];
+    label: string;
+
+    @Prop({ 
+        required: true 
+    })
+    key: string;
 
     @Prop({
         default: true

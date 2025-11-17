@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CustomerDto {
   @ApiProperty({ example: 'customer@example.com' })
@@ -31,12 +32,12 @@ export class InitializePaymentDto {
   @IsNotEmpty()
   amount: number;
 
-  @ApiProperty({ example: "NG | GH | RW | KE | ZM | TZ | MW | FR | GB | EU" })
+  @ApiProperty({ example: "NG" })
   @IsString()
   @IsNotEmpty()
   country: string;
 
-  @ApiProperty({ example: 'NGN | GHS | RWF | KES | ZMW | TZS | MWK | XOF | GBP | EUR' })
+  @ApiProperty({ example: 'NGN' })
   @IsString()
   @IsNotEmpty()
   currency: string;
@@ -52,8 +53,12 @@ export class InitializePaymentDto {
   payment_options: string;
 
   @ApiProperty({ type: CustomerDto })
+  @ValidateNested()
+  @Type(() => CustomerDto)
   customer: CustomerDto;
 
   @ApiProperty({ type: CustomizationsDto })
+  @ValidateNested()
+  @Type(() => CustomizationsDto)
   customizations: CustomizationsDto;
 }

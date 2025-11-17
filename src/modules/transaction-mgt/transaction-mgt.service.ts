@@ -8,6 +8,7 @@ import { CreateTransactionDto } from 'src/dto/transaction.dto';
 import { toResponseObject } from 'src/common/utils/transform.util';
 import { PaymentMgtService } from '../payment-mgt/payment-mgt.service';
 import { v4 as uuidv4 } from 'uuid';
+import { PaymentType } from 'src/common/enum/payment-type.enum';
 
 
 @Injectable()
@@ -73,19 +74,27 @@ export class TransactionMgtService {
 
 
     // verify transaction
-    async verifyTransaction(tx_ref: string) {
+    async verifyTransaction(tx_ref: string, paymentType: PaymentType) {
         try {
-            const paymentResult = await this.payment.verifyPayment(tx_ref);
+            // ✅ Verify payment & trigger payout
+            const paymentResult = await this.payment.verifyPayment(tx_ref, paymentType);
 
-            const topStatus = paymentResult.status;
-            const dataStatus = paymentResult.data?.status;
+            /**
+             * paymentResult returns:
+             * {
+             *   status: 'success' | 'pending',
+             *   message: string,
+             *   totalAmount?: number,
+             *   distributedTo?: number
+             * }
+             */
 
             let paymentStatus: PaymentStatus = PaymentStatus.PENDING;
 
-            if (topStatus === 'success' && dataStatus === 'successful') {
+            if (paymentResult.status === 'success') {
             paymentStatus = PaymentStatus.PAID;
-            } else if (dataStatus === 'failed') {
-            paymentStatus = PaymentStatus.FAILED;
+            } else {
+            paymentStatus = PaymentStatus.PENDING; // or FAILED if needed
             }
 
             // Step 1: Find the transaction first
@@ -96,11 +105,11 @@ export class TransactionMgtService {
 
             // ✅ Prevent re-verification if already paid
             if (transaction.paymentStatus === PaymentStatus.PAID) {
-                return {
-                    success: true,
-                    message: 'Transaction already verified and paid.',
-                    data: transaction,
-                };
+            return {
+                success: true,
+                message: 'Transaction already verified and paid.',
+                data: transaction,
+            };
             }
 
             // Step 2: Update transaction status
@@ -121,7 +130,7 @@ export class TransactionMgtService {
                 wallet.balance -= transaction.amount;
             }
 
-                await wallet.save();
+            await wallet.save();
             }
 
             return {
@@ -129,11 +138,11 @@ export class TransactionMgtService {
                 message: 'Transaction verified successfully.',
                 data: transaction,
             };
+
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
-
 
     // get all transaction inflow with type credit + paymentStatus paid
     async getAllInflowTransactions(page: number = 1, limit: number = 10) {
@@ -167,33 +176,52 @@ export class TransactionMgtService {
     }
 
 
-    // get transactions
-    async getTransactionHistory(userId: string) {
+    // get transactions with pagination
+    async getTransactionHistory(
+        userId: string,
+        page: number = 1,
+        limit: number = 10
+    ) {
         try {
             if (!userId) {
                 throw new BadRequestException("userId is required.");
             }
-        
+
             // Fetch wallet
             const wallet = await this.walletModel.findOne({ userId });
             if (!wallet) {
                 throw new BadRequestException("Wallet does not exist for this user.");
             }
-        
-            // Fetch transactions associated with the wallet
+
+            // Pagination logic
+            const skip = (page - 1) * limit;
+
+            // Fetch total transactions count
+            const total = await this.transactionModel.countDocuments({ walletId: wallet._id });
+
+            // Fetch paginated transactions
             const transactions = await this.transactionModel
-                .find({ walletId: wallet._id })
-                .sort({ createdAt: -1 }); // Most recent first
-        
+            .find({ walletId: wallet._id })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
             return {
                 success: true,
                 message: "Transaction history retrieved successfully.",
                 data: toResponseObject(transactions),
+                pagination: {
+                    total,
+                    page,
+                    limit,
+                    pages: Math.ceil(total / limit),
+                },
             };
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
+
 
 
     // get transaction by id

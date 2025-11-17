@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, UnauthorizedException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, UnauthorizedException, ForbiddenException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -17,6 +17,10 @@ import { CloudinaryService } from 'src/common/utils/cloudinary/cloudinary.servic
 import { ResetPasswordDto } from 'src/dto/auth-dto/reset-password.dto';
 import { SignInDto } from 'src/dto/auth-dto/sign-in.dto';
 import { VerifyOtpDto } from 'src/dto/auth-dto/verify-otp.dto';
+import { VerifyInvitationDto } from 'src/dto/auth-dto/verify-invitation.dto';
+import { WalletMgtService } from '../wallet-mgt/wallet-mgt.service';
+
+
 
 
 @Injectable()
@@ -25,6 +29,7 @@ export class AuthMgtService {
         @InjectModel(User.name) private userModel: Model<UserDocument>,
         private jwt: JwtService,
         private config: ConfigService,
+        private wallet: WalletMgtService,
         private cloudinary: CloudinaryService
     ){}
 
@@ -83,15 +88,15 @@ export class AuthMgtService {
 
             try {
                 await this.sendOtp(
-                savedUser.email,
-                otp,
-                savedUser.firstName ?? "",
-                savedUser.lastName ?? ""
+                    savedUser.email,
+                    otp,
+                    savedUser.firstName ?? "",
+                    savedUser.lastName ?? ""
                 );
 
                 return {
-                success: true,
-                message: "Sign up successful. Please verify your account with the OTP sent to your email."
+                    success: true,
+                    message: "Sign up successful. Please verify your account with the OTP sent to your email."
                 };
             } catch (error) {
                 // Don’t delete user — just log and notify
@@ -122,14 +127,15 @@ export class AuthMgtService {
         if (!user) throw new NotFoundException('User not found.');
      
         const transporter = Nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true, // Use SSL
-        auth: {
-            user: this.config.get('EMAIL_USER'),
-            pass: this.config.get('EMAIL_PASS'), // Use an App Password!
-        },
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false, // use STARTTLS
+            auth: {
+                user: this.config.get('EMAIL_USER'),
+                pass: this.config.get('EMAIL_PASS'),
+            },
         });
+
 
         const mailOptions = {
             from: this.config.get('EMAIL_USER'),
@@ -300,77 +306,209 @@ export class AuthMgtService {
     }
 
 
-    // invite user via link
+    // invite user via temporary password (for all roles)
     async inviteUser(dto: InviteUserDto) {
         try {
-            const { estateId, email, role, addressId } = dto;
+            const { estateId, email, role, addressId, firstName, lastName } = dto;
 
-            // Normalize email to lowercase
             const normalizedEmail = email.toLowerCase().trim();
 
-            // Check if email already exists
+            // 🔹 Check for existing user
             const existingUser = await this.userModel.findOne({ email: normalizedEmail });
             if (existingUser) {
-                throw new ConflictException('User with this email already exists');
+            throw new ConflictException('User with this email already exists');
             }
 
-            // If role is resident, addressId must be provided
-            if (role === 'resident' && !addressId) {
-                throw new BadRequestException('Address ID is required for residents.');
+            // 🔹 Address validation for residents
+            if (role === 'resident') {
+                if (!addressId) {
+                    throw new BadRequestException('Address ID is required for residents.');
+                }
+
+                // ✅ NEW: Check if this address is already assigned to another resident
+                const addressInUse = await this.userModel.findOne({
+                    estateId,
+                    addressId,
+                    role: 'resident',
+                });
+
+                if (addressInUse) {
+                    throw new ConflictException('This address has already been assigned to a resident.');
+                }
             }
 
-            // Generate JWT invitation token
-            const invitationToken = this.jwt.sign(
-                { estateId, email, role, addressId },
-                {
-                    secret: this.config.get<string>('JWT_SECRET'),
-                    expiresIn: '30d', // invite link is valid for 30 days
-                },
-            );
+            // 🔹 Generate and encode a strong temporary password
+            const tempPassword = this.generateStrongPassword();
+            const hashedPassword = await argon.hash(tempPassword);
 
-            // Create a pending user
-            const userPayload: any = {
+            // 🔹 Create user with temporary password
+            const user = await this.userModel.create({
+                firstName,
+                lastName,
                 email: normalizedEmail,
                 estateId,
                 role,
-                invitationStatus: 'pending',
-                invitationToken,
-            };
+                hash: hashedPassword,
+                addressId,
+                invitationStatus: 'not completed',
+                isVerified: false,
+                isActive: true,
+            });
 
-            // Add addressId only for residents
-            if (role === 'resident') {
-                userPayload.addressId = addressId;
-            }
-
-            await this.userModel.create(userPayload);
-
-            // Generate signup link
-            const signupLink = `${this.config.get<string>(
-            'USER_SIGNUP_URL',
-            )}?token=${invitationToken}`;
-
-            // Send invitation email
+            // 🔹 Configure transporter
             const transporter = Nodemailer.createTransport({
-                service: 'gmail',
+                // host: 'mail.bertandreconsulting.com',
+                host: 'smtp.gmail.com',
+                port: 587,
+                secure: false,
                 auth: {
-                    user: this.config.get<string>('EMAIL_USER'),
-                    pass: this.config.get<string>('EMAIL_PASS'),
+                    user: this.config.get('EMAIL_USER'),
+                    pass: this.config.get('EMAIL_PASS'),
                 },
             });
 
+
+
+            let emailBody = `Hello ${firstName} ${lastName},
+
+        Your account for the estate portal has been created successfully.
+        `;
+
+            // ✅ Admins get only encoded secure link
+            if (role.toLowerCase() === 'admin') {
+            const baseUrl =
+                this.config.get<string>('VERIFY_INVITE_URL') ||
+                process.env.VERIFY_INVITE_URL;
+
+            if (!baseUrl) {
+                throw new Error('VERIFY_INVITE_URL is not defined in the environment');
+            }
+
+            // 🔹 Token with encoded tempPassword
+            const token = this.jwt.sign(
+                {
+                userId: (user._id as any).toString(),
+                email: normalizedEmail,
+                tempPassword, // store encoded version
+                },
+                {
+                secret: this.config.get('JWT_SECRET'),
+                expiresIn: '7d',
+                },
+            );
+
+            const encodedToken = encodeURIComponent(token);
+            const signupLink = `${baseUrl}?token=${encodedToken}`;
+
+            emailBody += `
+        A secure link has been generated for you to verify and complete your setup.
+        Click the link below (valid for 7 days):
+
+        ${signupLink}
+
+        If you didn’t request this, you can ignore this email.
+        `;
+
+            } else {
+            // ✅ Non-admins (e.g., staff, residents) get full credentials
+            emailBody += `
+        Here are your temporary login credentials:
+        Email: ${normalizedEmail}
+        Temporary Password: ${tempPassword}
+
+        Please verify your account using the link below (valid for 7 days):
+        `;
+
+            const baseUrl =
+                this.config.get<string>('VERIFY_INVITE_URL') ||
+                process.env.VERIFY_INVITE_URL;
+
+            const token = this.jwt.sign(
+                {
+                userId: (user._id as any).toString(),
+                email: normalizedEmail,
+                tempPassword,
+                },
+                {
+                secret: this.config.get('JWT_SECRET'),
+                expiresIn: '7d',
+                },
+            );
+
+            const encodedToken = encodeURIComponent(token);
+            const signupLink = `${baseUrl}?token=${encodedToken}`;
+
+            emailBody += `\n${signupLink}\n\nIf you didn’t expect this, you can ignore this message.\n`;
+            }
+
+            // 🔹 Send Email
             const mailOptions = {
-                from: this.config.get<string>('EMAIL_USER'),
+                from: this.config.get('EMAIL_USER'),
                 to: normalizedEmail,
-                subject: 'Complete Your Estate Account Registration',
-                text: `You have been invited to sign up with your estate. Please complete your registration by clicking the link below:\n\n${signupLink}\n\nIf you did not expect this invitation, you can ignore this email.`,
+                subject: 'Your Temporary Estate Portal Login Details',
+                text: emailBody,
             };
 
             await transporter.sendMail(mailOptions);
 
             return {
                 success: true,
-                message:
-                    'Invitation sent successfully. The user must complete registration via the link sent to their email.',
+                message: `User account for ${role} created successfully. ${
+                    role.toLowerCase() === 'admin'
+                    ? `A secure invite link has been sent to ${email}.`
+                    : `Temporary credentials were sent to ${email}.`
+                }`,
+            };
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
+
+
+    async verifyInvitation(dto: VerifyInvitationDto) {
+        try {
+            const normalizedEmail = dto.email.toLowerCase().trim();
+
+            // 🔹 Check if user exists
+            const user = await this.userModel.findOne({ email: normalizedEmail });
+            if (!user) {
+                throw new NotFoundException('User not found.');
+            }
+
+            // 🔹 Check invitation status
+            if (user.invitationStatus !== 'not completed') {
+                throw new BadRequestException('Invitation not valid or already verified.');
+            }
+
+            // 🔹 Verify temporary password
+            const isMatch = await argon.verify(user.hash, dto.tempPassword);
+            if (!isMatch) {
+                throw new UnauthorizedException('Invalid temporary password.');
+            }
+
+            // 🔹 Validate new password strength
+            const passwordRegex =
+            /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()_+=[\]{};':"\\|,.<>/?-]).{8,}$/;
+
+            if (!passwordRegex.test(dto.newPassword)) {
+                throw new BadRequestException(
+                    'Password must be at least 8 characters long, include uppercase, lowercase, number, and special character.',
+                );
+            }
+
+            // 🔹 Hash and update password
+            const hashedNewPassword = await argon.hash(dto.newPassword);
+            user.hash = hashedNewPassword;
+            user.isVerified = true;
+            user.invitationStatus = 'completed';
+            user.otp = undefined;
+            user.otpExpiresAt = undefined;
+
+            await user.save();
+
+            return {
+                success: true,
+                message: 'Account verified successfully. You can now sign in with your new password.',
             };
         } catch (error) {
             throw new BadRequestException(error.message);
@@ -440,6 +578,23 @@ export class AuthMgtService {
             }
 
             await pendingUser.save();
+
+            // ✅ Create wallet automatically for residents
+            if (role === 'resident') {
+                try {
+                    await this.wallet.createWallet({
+                        userId: pendingUser.id.toString(),
+                        balance: 0,
+                        lockedBalance: 0,
+                    });
+                } catch (walletError) {
+                    // Ignore if wallet already exists
+                    if (walletError.message !== "Wallet already exists for this user.") {
+                        throw walletError;
+                    }
+                }
+            }
+
 
             // Send OTP email
             const transporter = Nodemailer.createTransport({
@@ -704,29 +859,82 @@ export class AuthMgtService {
             refreshToken
         };
     }
+
+
+    // ✅ Helper Method to Generate Strong Password
+    private generateStrongPassword(): string {
+        const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const lower = 'abcdefghijklmnopqrstuvwxyz';
+        const numbers = '0123456789';
+        const special = '@$!%*?&';
+        const allChars = upper + lower + numbers + special;
+
+        let password = '';
+        // Ensure at least one of each type
+        password += upper[Math.floor(Math.random() * upper.length)];
+        password += lower[Math.floor(Math.random() * lower.length)];
+        password += numbers[Math.floor(Math.random() * numbers.length)];
+        password += special[Math.floor(Math.random() * special.length)];
+
+        // Fill remaining with random chars up to 10–14 length range
+        const remainingLength = Math.floor(Math.random() * 7) + 6; // 10–14 total length
+        for (let i = 0; i < remainingLength; i++) {
+            password += allChars[Math.floor(Math.random() * allChars.length)];
+        }
+
+        // Shuffle characters to avoid predictable order
+        return password
+            .split('')
+            .sort(() => 0.5 - Math.random())
+            .join('');
+    }
   
 
-    // get signed in user
     async getUserById(userId: string) {
         try {
-            // Try to find user in all user models
-            let user =
-            await this.userModel.findById(userId).select('-hash -otp -otpExpiresAt -resetPasswordToken -resetPasswordExpires');
-            
-            if (!user) {
-            throw new UnauthorizedException('User not found.');
+            if (!userId) {
+                throw new BadRequestException('User ID is required.');
             }
-    
-            const signedInUser = toResponseObject(user)
+
+            // Validate userId format (Mongo ObjectId)
+            if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new BadRequestException('Invalid user ID format.');
+            }
+
+            const user = await this.userModel
+            .findById(userId)
+            .select('-hash -otp -otpExpiresAt -resetPasswordToken -resetPasswordExpires');
+
+            if (!user) {
+                throw new UnauthorizedException('User not found.');
+            }
+
+            const signedInUser = toResponseObject(user);
+
             return {
                 success: true,
-                message: "Signed in user retrieved successfully.",
-                data: signedInUser
-            }
+                message: 'Signed in user retrieved successfully.',
+                data: signedInUser,
+            };
         } catch (error) {
-            throw new BadRequestException(error.message);
+            // 🔥 Log the raw error for debugging
+            console.error('getUserById error:', error);
+
+            // Check if it's a known NestJS exception already
+            if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+            throw error;
+            }
+
+            // Catch invalid ObjectId or unexpected Mongoose errors
+            if (error.name === 'CastError') {
+            throw new BadRequestException('Invalid user ID.');
+            }
+
+            // Generic fallback
+            throw new InternalServerErrorException('Failed to retrieve user.');
         }
     }
+
 
 
     // Sign out (stateless JWT)

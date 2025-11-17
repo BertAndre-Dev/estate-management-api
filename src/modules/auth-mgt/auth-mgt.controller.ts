@@ -32,6 +32,7 @@ import { InviteUserDto } from 'src/dto/auth-dto/invite-user.dto';
 import { Role } from 'src/common/enum/roles.enum';
 import { Roles } from 'src/common/decorators/roles.decorstor';
 import { PinLoginDto } from 'src/dto/auth-dto/pin-login.dto';
+import { VerifyInvitationDto } from 'src/dto/auth-dto/verify-invitation.dto';
 
 
 @ApiTags('Authentication')
@@ -80,22 +81,40 @@ export class AuthMgtController {
     }
 
 
-    // complete invited user sign up
-    @Post('complete-signup')
+    @Post('verify-invited-user')
+    @UseGuards(AuthGuard, RoleGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @ApiOperation({
-        summary: 'Complete invited user sign up',
-        description: 'This api completes the invited users sign up.'
+        summary: 'Verify invited user to sign up',
+        description: 'This API verifies an invited user.'
     })
-    async completeSignup(
-        @Query('token') token: string, 
-        @Body() dto: CreateUserDto
+    async verifyInvitedUser(
+        @Body() dto: VerifyInvitationDto, 
     ) {
         try {
-            return this.authService.completeSignup(token, dto);
+            return this.authService.verifyInvitation(dto);
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
+
+
+    // complete invited user sign up
+    // @Post('complete-signup')
+    // @ApiOperation({
+    //     summary: 'Complete invited user sign up',
+    //     description: 'This api completes the invited users sign up.'
+    // })
+    // async completeSignup(
+    //     @Query('token') token: string, 
+    //     @Body() dto: CreateUserDto
+    // ) {
+    //     try {
+    //         return this.authService.completeSignup(token, dto);
+    //     } catch (error) {
+    //         throw new BadRequestException(error.message);
+    //     }
+    // }
 
     // Sign in 
     @Post('sign-in')
@@ -265,8 +284,14 @@ export class AuthMgtController {
     @ApiOperation({
         summary: 'This API returns the signed in user',
     })
-    async getLoggedInUser(@Req() req) {
-        return this.authService.getUserById(req.user._id);
+    async getSignedInUser(@Req() req) {
+        try {
+            const userId = req.user?.id;
+            return this.authService.getUserById(userId);
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
     }
+
 
 }

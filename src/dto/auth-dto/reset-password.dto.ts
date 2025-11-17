@@ -15,7 +15,7 @@ export class ResetPasswordDto {
   @ApiProperty({
     example: 'password123',
     description: 'Password for the user account',
-    })
+  })
     @IsString()
     @IsNotEmpty()
     @MinLength(8, { message: "Password too short, it should be a minimum of 8 characters." })

@@ -1,13 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsArray,
+  IsBoolean,
   IsNotEmpty,
+  IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
-export class EstateDetailsDto {
+export class EstateDto {
   @ApiProperty({
     description: 'Name of the estate',
     example: 'Green Valley Estate',
@@ -47,25 +46,13 @@ export class EstateDetailsDto {
   @IsString()
   @IsNotEmpty()
   country: string;
-}
 
-export class EstateDto {
-  @ApiProperty({
-    description: 'List of estate details',
-    type: [EstateDetailsDto],
-    example: [
-      {
-        name: 'Green Valley Estate',
-        address: '123 Palm Avenue',
-        city: 'Lagos',
-        state: 'Lagos State',
-        country: 'Nigeria',
-      },
-    ],
+  @ApiPropertyOptional({
+    description: 'Indicates if the estate is active',
+    example: true,
+    default: true,
   })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => EstateDetailsDto)
-  estate: EstateDetailsDto[];
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
-

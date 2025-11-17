@@ -10,12 +10,16 @@ import { TransactionMgtModule } from './modules/transaction-mgt/transaction-mgt.
 import { BillsMgtModule } from './modules/bills-mgt/bills-mgt.module';
 import { VisitorMgtModule } from './modules/visitor-mgt/visitor-mgt.module';
 import { AddressMgtModule } from './modules/address-mgt/address-mgt.module';
+import { MeterMgtModule } from './modules/meter-mgt/meter-mgt.module';
+import { StsModule } from './modules/sts/sts.module';
+import { IecModule } from './modules/iec/iec.module';
 
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
@@ -33,6 +37,9 @@ import { AddressMgtModule } from './modules/address-mgt/address-mgt.module';
     BillsMgtModule,
     VisitorMgtModule,
     AddressMgtModule,
+    MeterMgtModule,
+    StsModule,
+    IecModule,
   ],
   controllers: [],
   providers: [],

@@ -21,34 +21,55 @@ export class AddressMgtService {
 
     // create address fields
     async createAddressField(dto: CreateFieldDto) {
-
         try {
-            const estateId = new Types.ObjectId(dto.estateId);
-    
-            // Check if the field already exist for this estateId
-            const exisitingField = await this.fieldModel.findOne({ estateId });
-
-            if (!exisitingField) {
-                throw new BadRequestException("An address field already exist for this estate. One one address field can be attached to an estate");
+            // Validate required fields
+            if (!dto.label?.trim()) {
+                throw new BadRequestException("Field label is required.");
             }
 
-            const field = new this.fieldModel({
-                ...dto,
-                estateId
+            if (!dto.estateId) {
+                throw new BadRequestException("Estate ID is required.");
+            }
+
+            // Check if estate exists
+            const estateExists = await this.estateModel.exists({ _id: dto.estateId });
+            if (!estateExists) {
+                throw new NotFoundException("Estate not found.");
+            }
+
+            // Normalize label for consistent duplicate detection
+            const normalizedLabel = dto.label.trim().toLowerCase();
+
+            // Check for duplicate field label inside the SAME estate
+            const existingField = await this.fieldModel.findOne({
+                estateId: dto.estateId,
+                label: new RegExp(`^${normalizedLabel}$`, "i"), // case-insensitive match
             });
 
-            // Save address field
-            const savedField = await field.save();
+            if (existingField) {
+                throw new BadRequestException(
+                    `The label "${dto.label}" already exists for this estate.`
+                );
+            }
+
+            // Create new field
+            const newField = new this.fieldModel({
+                ...dto,
+                label: normalizedLabel, // stored normalized
+            });
+
+            const savedField = await newField.save();
 
             return {
                 success: true,
-                message: "Address fields created successfully.",
-                data: toResponseObject(savedField)
-            }
+                message: "Address field created successfully.",
+                data: toResponseObject(savedField),
+            };
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
+
 
 
     // update address fields
@@ -61,13 +82,9 @@ export class AddressMgtService {
                 throw new NotFoundException("Address field not found.");
             }
 
-            // preserve the estateId if not part of the dto
-            const perservedEstatId = field.estateId;
-
             // update the address fields
             field.set({
-                ...dto,
-                estateId: dto.estateId || perservedEstatId
+                ...dto
             });
 
             await field.save();
@@ -96,7 +113,6 @@ export class AddressMgtService {
             await this.fieldModel.deleteMany({ id });
 
             // delete all associated entries
-
 
             return {
                 success: true,
@@ -130,25 +146,25 @@ export class AddressMgtService {
 
 
     // ✅ Get all address fields of an estate (fixed)
-    async getAddressFieldsByEstate(
-        estateId: string
-    ) {
+    async getAddressFieldsByEstate(estateId: string) {
         try {
             if (!estateId) {
                 throw new BadRequestException('Estate ID is required.');
             }
 
-            // Verify that the estate actually exists
             const estateExists = await this.estateModel.exists({ _id: estateId });
             if (!estateExists) {
                 throw new NotFoundException('Estate not found.');
             }
 
-            // Find all fields related to this estate
             const fields = await this.fieldModel.find({ estateId });
 
             if (!fields || fields.length === 0) {
-                throw new NotFoundException('No address fields found for this estate.');
+                return {
+                    success: true,
+                    message: 'No address fields found for this estate yet.',
+                    data: [],
+                };
             }
 
             return {
@@ -157,115 +173,131 @@ export class AddressMgtService {
                 data: toResponseObject(fields),
             };
         } catch (error) {
-            throw new BadRequestException(error.message);
+            // only catch unexpected errors
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new BadRequestException('Something went wrong retrieving address fields.');
         }
     }
 
 
-    // create field entry
+
+    // ✅ Create a single address entry
     async createAddressEntry(dto: CreateEntryDto) {
         try {
+            // Check if the referenced field exists
             const field = await this.fieldModel.findById(dto.fieldId);
-
-            // Check if the field Id exisit
             if (!field) {
-                throw new NotFoundException("Field not found.");
+            throw new NotFoundException("Field not found.");
             }
 
-            if (!dto.data || typeof dto.data !== 'object') {
-                throw new BadRequestException('Entry data is required and must be an object.');
+            // Validate entry data
+            if (!dto.data || typeof dto.data !== "object" || Array.isArray(dto.data)) {
+            throw new BadRequestException("Entry data must be a valid object.");
             }
 
-            const expectedKeys = field.field.map(f => f.key);
-
-            const missing = expectedKeys.filter(k => !(k in dto.data));
-
-            if (missing.length > 0) {
-                throw new BadRequestException(`Missing field(s): ${missing.join(', ')}`);
+            // Ensure the key for this field exists in the provided data
+            if (!(field.key in dto.data)) {
+            throw new BadRequestException(
+                `Missing required field key: ${field.key}`
+            );
             }
 
-            const entry = new this.entryModel(dto);
+            // Create and save entry
+            const entry = new this.entryModel({
+            fieldId: dto.fieldId,
+            estateId: field.estateId, // ✅ derive from field
+            data: dto.data,
+            });
+
             const savedEntry = await entry.save();
 
             return {
-                success: true,
-                message: "Entry created successfully.",
-                data: toResponseObject(savedEntry)
-            }
-        } catch (error) {
-            throw new BadRequestException(error.message);   
-        }
-    }
-
-
-    // Create bulk entries
-    async createAddressBulkEntries(dto: CreateBulkEntryDto) {
-        try {
-            const result: {
-                success: boolean;
-                message: string;
-                entryDto?: CreateEntryDto;
-                entryData?: any;
-            }[] = [];
-
-            for (const entryDto of dto.entries) {
-                const field = await this.fieldModel.findById(entryDto.fieldId);
-
-                if (!field) {
-                    result.push({
-                        success: false,
-                        message: `Field configuration not found for fieldId: ${entryDto.fieldId}`,
-                        entryDto
-                    });
-                    continue;
-                }
-
-
-                if (!entryDto.data || typeof entryDto.data !== 'object' || Array.isArray(entryDto.data)) {
-                    result.push({
-                        success: false,
-                        message: "Entry data is required and must be an object",
-                        entryDto
-                    });
-                    continue;
-                }
-
-
-                const expectedKeys = field.field.map(f => f.key);
-                const missing = expectedKeys.filter(k => !(k in entryDto.data));
-                if (missing.length > 0) {
-                    result.push({
-                        success: false,
-                        message: `Missing required field(s): ${missing.join(', ')}`,
-                        entryDto
-                    });
-                    continue;
-                }
-
-
-                // Save valid entry
-                const entry = new this.entryModel({
-                    fieldId: entryDto.fieldId,
-                    estateId: entryDto.estateId,
-                    data: entryDto.data,
-                });
-
-                await entry.save();
-
-                result.push({
-                    success: true,
-                    message: "Entry created successfully.",
-                    entryData: entry 
-                });
-            }
-
-            return {
-                result
+            success: true,
+            message: "Entry created successfully.",
+            data: toResponseObject(savedEntry),
             };
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
+
+
+
+    // ✅ Create multiple address entries (bulk)
+    async createAddressBulkEntries(dto: CreateBulkEntryDto) {
+        try {
+            const result: {
+            success: boolean;
+            message: string;
+            entryDto?: CreateEntryDto;
+            entryData?: any;
+            }[] = [];
+
+            for (const entryDto of dto.entries) {
+            const field = await this.fieldModel.findById(entryDto.fieldId);
+
+            // 1️⃣ Check if field exists
+            if (!field) {
+                result.push({
+                success: false,
+                message: `Field not found for fieldId: ${entryDto.fieldId}`,
+                entryDto,
+                });
+                continue;
+            }
+
+            // 2️⃣ Validate entry data
+            if (
+                !entryDto.data ||
+                typeof entryDto.data !== "object" ||
+                Array.isArray(entryDto.data)
+            ) {
+                result.push({
+                success: false,
+                message: "Entry data must be a valid object.",
+                entryDto,
+                });
+                continue;
+            }
+
+            // 3️⃣ Check that key matches expected key for this field
+            if (!(field.key in entryDto.data)) {
+                result.push({
+                success: false,
+                message: `Missing required field key: ${field.key}`,
+                entryDto,
+                });
+                continue;
+            }
+
+            // 4️⃣ Save valid entry
+            const entry = new this.entryModel({
+                fieldId: entryDto.fieldId,
+                estateId: field.estateId,
+                data: entryDto.data,
+            });
+
+            await entry.save();
+
+            result.push({
+                success: true,
+                message: "Entry created successfully.",
+                entryData: entry,
+            });
+            }
+
+            return {
+            success: true,
+            message: "Bulk entry processing complete.",
+            result,
+            };
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
+
 
 
     // Update entry
@@ -341,7 +373,7 @@ export class AddressMgtService {
 
     // Get all the entries attached to an estate
     async getAllEstateAddressEntries(
-        estateId: string,
+        fieldId: string,
         page: number,
         limit: number
     ) {
@@ -350,12 +382,12 @@ export class AddressMgtService {
     
             const [entries, total] = await Promise.all([
                 this.entryModel
-                    .find({ estateId })
+                    .find({ fieldId })
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit),
                 this.entryModel.countDocuments({
-                    estateId
+                    fieldId
                 }),
             ]);
     
@@ -377,4 +409,55 @@ export class AddressMgtService {
             throw new BadRequestException(error.message);
         }
     }
+
+
+    // ✅ Get dynamic statistics for entries in a field (count unique values)
+    async getAddressEntryStats(fieldId: string) {
+        try {
+            if (!fieldId) throw new BadRequestException("Field ID is required");
+
+            const entries = await this.entryModel.find({ fieldId });
+
+            if (!entries.length) {
+            return {
+                success: true,
+                message: "No entries found for this field.",
+                data: {
+                totalEntries: 0,
+                counts: {}
+                }
+            };
+            }
+
+            const valueSets: Record<string, Set<any>> = {};
+
+            for (const entry of entries) {
+            const entryData =
+                entry.data instanceof Map ? Object.fromEntries(entry.data) : entry.data;
+
+            for (const [key, value] of Object.entries(entryData)) {
+                if (!valueSets[key]) valueSets[key] = new Set();
+                valueSets[key].add(value);
+            }
+            }
+
+            const uniqueCounts: Record<string, number> = {};
+            for (const key of Object.keys(valueSets)) {
+            uniqueCounts[key] = valueSets[key].size;
+            }
+
+            return {
+            success: true,
+            message: "Dynamic entry statistics retrieved successfully.",
+            data: {
+                totalEntries: entries.length,
+                counts: uniqueCounts
+            }
+            };
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
+
+
 }

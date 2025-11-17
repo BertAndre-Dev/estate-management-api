@@ -16,6 +16,7 @@ import { TransactionMgtService } from '../transaction-mgt/transaction-mgt.servic
 import { addMonths } from 'date-fns';
 import { User, UserDocument } from 'src/schema/user.schema';
 
+
 @Injectable()
 export class BillsMgtService {
     constructor(
@@ -66,35 +67,80 @@ export class BillsMgtService {
 
 
     // get all bills by estate
+    // async getBillsByEstate(
+    //     estateId: string, 
+    //     page: number = 1, 
+    //     limit: number = 10, 
+    //     search?: string
+    // ) {
+    //     try {
+    //         const query: any = { estateId };
+    //         if (search) {
+    //             query.name = { $regex: search, $options: 'i' }; // case-insensitive search
+    //         }   
+    //         const total = await this.billModel.countDocuments(query);
+    //         const totalPages = Math.ceil(total / limit);
+    //         const skip = (page - 1) * limit;    
+    //         const bills = await this.billModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
+    //         return {
+    //             success: true,  
+    //             message: "Bills retrieved successfully.",
+    //             data: toResponseObject(bills),
+    //             pagination: {
+    //                 total,
+    //                 currentPage: page,
+    //                 totalPages,
+    //                 pageSize: limit,
+    //             },
+    //         }
+    //     } catch (error) {
+    //         throw new BadRequestException(error.message);
+    //     }   
+    // }
+
+
     async getBillsByEstate(
-        estateId: string, 
-        page: number = 1, 
-        limit: number = 10, 
-        search?: string
+        estateId: string,
+        page = 1,
+        limit = 10
     ) {
         try {
-            const query: any = { estateId };
-            if (search) {
-                query.name = { $regex: search, $options: 'i' }; // case-insensitive search
-            }   
-            const total = await this.billModel.countDocuments(query);
-            const totalPages = Math.ceil(total / limit);
-            const skip = (page - 1) * limit;    
-            const bills = await this.billModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
+            if (!estateId || typeof estateId !== 'string') {
+                throw new BadRequestException('A valid estateId is required.');
+            }
+
+            const skip = (page - 1) * limit;
+
+            // Base query: filter by estateId
+            const query: Record<string, any> = { estateId: estateId.trim() };
+
+            // ✅ Super admin can see all users in the estate (no additional filter)
+            const [bills, total] = await Promise.all([
+                this.billModel
+                    .find(query)
+                    .sort({ createdAt: -1 })
+                    .skip(skip)
+                    .limit(limit),
+
+                this.billModel.countDocuments(query),
+            ]);
+
             return {
-                success: true,  
-                message: "Bills retrieved successfully.",
+                success: true,
+                message: bills.length
+                    ? 'Estate bills retrieved successfully.'
+                    : 'No bills found for this estate.',
                 data: toResponseObject(bills),
                 pagination: {
                     total,
-                    currentPage: page,
-                    totalPages,
-                    pageSize: limit,
+                    page,
+                    limit,
+                    pages: Math.ceil(total / limit) || 1,
                 },
-            }
+            };
         } catch (error) {
             throw new BadRequestException(error.message);
-        }   
+        }
     }
 
 
@@ -166,9 +212,9 @@ export class BillsMgtService {
 
 
     // suspend bill
-    async suspendBill(billId: string) {
+    async suspendBill(id: string) {
         try {
-            const suspendBill = await this.billModel.findById(billId);
+            const suspendBill = await this.billModel.findById(id);
     
             // check if the bill exist
             if (!suspendBill) {
@@ -196,9 +242,9 @@ export class BillsMgtService {
 
 
     // activate bill
-    async activateBill(billId: string) {
+    async activateBill(id: string) {
         try {
-            const activateBill = await this.billModel.findById(billId);
+            const activateBill = await this.billModel.findById(id);
 
             // check if the bill already exist
             if (!activateBill) {
@@ -237,14 +283,12 @@ export class BillsMgtService {
 
             // fetch wallet
             const wallet = await this.walletModel.findById(dto.walletId);
-
             if (!wallet) {
                 throw new NotFoundException("Wallet not found.");
             }
 
-            // calculate the amount based on the frequency
+            // calculate amount based on frequency
             let amount: number;
-
             if (dto.frequency === 'monthly') {
                 amount = bill.yearlyAmount / 12;
             } else if (dto.frequency === 'quarterly') {
@@ -253,19 +297,48 @@ export class BillsMgtService {
                 amount = bill.yearlyAmount;
             }
 
-            
             if (wallet.balance < amount) {
-                throw new BadRequestException("Insufficient wallet balance. Top up your wallet.");
+                throw new BadRequestException(
+                    "Insufficient wallet balance. Top up your wallet."
+                );
             }
 
-            // create and record the transaction (debit)
+            // find existing resident bill
+            let residentBill = await this.residentBillModel.findOne({
+                userId: dto.userId,
+                billId: dto.billId
+            });
+
+            const today = new Date();
+
+            // 🔥 PREVENT PAYMENT TOO EARLY
+            if (residentBill && residentBill.nextDueDate) {
+                const nextDue = new Date(residentBill.nextDueDate);
+
+                // calculate number of days until next due date
+                const daysDiff =
+                    (nextDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+
+                // if daysLeft > 5 → payment not allowed
+                if (daysDiff > 5) {
+                    throw new BadRequestException(
+                        `You can only renew this bill 5 days before the next due date. Next due date is ${nextDue.toDateString()}.`
+                    );
+                }
+            }
+
+            // ---------------------------
+            // PAYMENT CAN CONTINUE BELOW
+            // ---------------------------
+
+            // record transaction (debit)
             const transactionDto: CreateTransactionDto = {
                 walletId: dto.walletId,
                 type: 'debit',
                 amount: amount,
                 description: `Payment for ${bill.name} (${dto.frequency})`,
                 userId: dto.userId,
-            }
+            };
 
             const transactionResult = await this.transactionMgt.createTransaction(transactionDto);
 
@@ -273,19 +346,13 @@ export class BillsMgtService {
                 throw new BadRequestException('Transaction failed, try again.');
             }
 
-            // find existing resident bill record
-            let residentBill = await this.residentBillModel.findOne({
-                userId: dto.userId,
-                billId: dto.billId
-            });
-
+            const transactionId = transactionResult.data?.tx_ref;
             const paymentDate = new Date();
 
             // calculate next due date
             let nextDueDate: Date;
-
             if (dto.frequency === 'monthly') {
-                nextDueDate = addMonths(paymentDate, 1)
+                nextDueDate = addMonths(paymentDate, 1);
             } else if (dto.frequency === 'quarterly') {
                 nextDueDate = addMonths(paymentDate, 3);
             } else {
@@ -293,32 +360,33 @@ export class BillsMgtService {
             }
 
             if (residentBill) {
-                // update exisitng bill record
+                // update existing bill record
                 residentBill.lastPaymentDate = paymentDate;
                 residentBill.nextDueDate = nextDueDate;
                 residentBill.status = 'active';
-
+                residentBill.amountPaid = amount;
                 await residentBill.save();
             } else {
+                // first-time payment
                 residentBill = await this.residentBillModel.create({
                     userId: dto.userId,
                     billId: dto.billId,
+                    transactionId,
                     frequency: dto.frequency,
                     amountPaid: amount,
                     startDate: paymentDate,
                     nextDueDate: nextDueDate,
-                    status: 'active'
+                    status: 'active',
                 });
             }
 
-
-            // 6️⃣ Update user serviceCharge if bill name is "Service Charge"
-            if (bill.name.trim().toLowerCase() === 'service charge') {
-            await this.userModel.findByIdAndUpdate(
-                dto.userId,
-                { $set: { serviceCharge: true } },
-                { new: true },
-            );
+            // update service charge flag on user
+            if (bill.isServiceCharge === true) {
+                await this.userModel.findByIdAndUpdate(
+                    dto.userId,
+                    { $set: { serviceCharge: true } },
+                    { new: true }
+                );
             }
 
             return {
@@ -329,28 +397,51 @@ export class BillsMgtService {
                     transaction: toResponseObject(transactionResult.data),
                     nextDueDate
                 }
-            }
+            };
+
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
 
 
-    // get residents's bill summary
-    async getResidentBills(residentId: string) {
+
+    // get resident's bill summary
+    async getResidentBills(userId: string) {
         try {
-            const bills = await this.residentBillModel
-                .find({ residentId })
-                .populate("billId")
-                .sort({ createdAt: -1 });
+            // Fetch all resident bill records
+            const residentBills = await this.residentBillModel
+            .find({ userId })
+            .sort({ createdAt: -1 });
+
+            // Map through bills and attach bill info (name, amount, etc.)
+            const enrichedBills = await Promise.all(
+            residentBills.map(async (rb) => {
+                const bill = await this.billModel.findById(rb.billId);
+
+                return {
+                _id: rb._id,
+                userId: rb.userId,
+                billId: rb.billId,
+                billName: bill?.name || "Unknown Bill",
+                frequency: rb.frequency,
+                amountPaid: rb.amountPaid,
+                startDate: rb.startDate,
+                nextDueDate: rb.nextDueDate,
+                status: rb.status,
+                lastPaymentDate: rb.lastPaymentDate
+                };
+            })
+            );
 
             return {
-                success: true,
-                message: "Resident bills retrieved successfully.",
-                data: toResponseObject(bills)
-            }
+            success: true,
+            message: "Resident bills retrieved successfully.",
+            data: enrichedBills,
+            };
         } catch (error) {
             throw new BadRequestException(error.message);
         }
     }
+
 }

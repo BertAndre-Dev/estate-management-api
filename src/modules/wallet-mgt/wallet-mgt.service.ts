@@ -4,11 +4,13 @@ import { Model } from 'mongoose';
 import { Wallet, WalletDocument } from 'src/schema/wallet.schema';
 import { CreateWalletDto } from 'src/dto/wallet.dto';
 import { toResponseObject } from 'src/common/utils/transform.util';
+import { User, UserDocument } from 'src/schema/user.schema';
 
 @Injectable()
 export class WalletMgtService {
     constructor(
         @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+        @InjectModel(User.name) private userModel: Model<UserDocument>,
     ) {}
 
 
@@ -27,13 +29,17 @@ export class WalletMgtService {
         try {
             const wallet = new this.walletModel(dto);
             const savedWallet = await wallet.save();
+
+            // Update user with the walletId
+            await this.userModel.findByIdAndUpdate(dto.userId, { walletId: savedWallet._id });
+
             const response = toResponseObject(savedWallet);
 
             return {
                 success: true,
                 message: "Wallet created successfully.",
                 data: response
-            }
+            };
         } catch (error) {
             throw new BadRequestException(error.message);
         }
