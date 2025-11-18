@@ -18,6 +18,8 @@ const wallet_schema_1 = require("../../schema/wallet.schema");
 const transaction_schema_1 = require("../../schema/transaction.schema");
 const entry_schema_1 = require("../../schema/address/entry.schema");
 const transaction_mgt_module_1 = require("../transaction-mgt/transaction-mgt.module");
+const iec_client_service_1 = require("../iec/iec-client.service");
+const pending_request_schema_1 = require("../../schema/ice/pending-request.schema");
 let MeterMgtModule = class MeterMgtModule {
 };
 exports.MeterMgtModule = MeterMgtModule;
@@ -34,11 +36,15 @@ exports.MeterMgtModule = MeterMgtModule = __decorate([
                 { name: meter_reading_schema_1.MeterReading.name, schema: meter_reading_schema_1.MeterReadingSchema },
                 { name: entry_schema_1.Entry.name, schema: entry_schema_1.EntrySchema },
                 { name: transaction_schema_1.Transaction.name, schema: transaction_schema_1.TransactionSchema },
+                { name: pending_request_schema_1.PendingRequest.name, schema: pending_request_schema_1.PendingRequestSchema },
             ]),
             transaction_mgt_module_1.TransactionMgtModule,
         ],
         controllers: [meter_mgt_controller_1.MeterMgtController],
-        providers: [meter_mgt_service_1.MeterMgtService],
+        providers: [
+            meter_mgt_service_1.MeterMgtService,
+            iec_client_service_1.IecClientService,
+        ],
     })
 ], MeterMgtModule);
 //# sourceMappingURL=meter-mgt.module.js.map

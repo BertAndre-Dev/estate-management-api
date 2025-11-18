@@ -14,15 +14,34 @@ const parser = new fast_xml_parser_1.XMLParser({
     parseTagValue: false,
     trimValues: true,
 });
-function buildRequestMessage(header, payload) {
-    const envelope = {
-        RequestMessage: {
-            '@_xmlns': 'http://iec.ch/TC57/2011/schema/message',
-            Header: header,
-            Request: payload,
-        },
+const IEC_NAMESPACES = {
+    GetUserToken: 'http://iec.ch/TC57/2011/GetMeterReadings#',
+    EndDeviceControls: 'http://iec.ch/TC57/2011/EndDeviceControls#',
+};
+const IEC_WRAPPER = {
+    GetUserToken: 'Request',
+    DetailsMeter: 'Request',
+    GetMeterReadings: 'Request',
+    EndDeviceControls: 'Payload',
+};
+function buildRequestMessage(header) {
+    const noun = header?.Noun;
+    const namespace = IEC_NAMESPACES[noun] ||
+        'http://iec.ch/TC57/2011/GetMeterReadings#';
+    const wrapper = IEC_WRAPPER[noun] || 'Payload';
+    return (payload) => {
+        const envelope = {
+            RequestMessage: {
+                '@_xmlns': 'http://iec.ch/TC57/2011/schema/message',
+                '@_xmlns:m': namespace,
+                '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                '@_xsi:schemaLocation': 'http://iec.ch/TC57/2011/schema/message Message.xsd',
+                Header: header,
+            },
+        };
+        envelope.RequestMessage[wrapper] = payload;
+        return builder.build(envelope);
     };
-    return builder.build(envelope);
 }
 function parseResponse(xml) {
     return parser.parse(xml);

@@ -23,6 +23,8 @@ const roles_guard_1 = require("../../common/guards/roles.guard");
 const roles_decorstor_1 = require("../../common/decorators/roles.decorstor");
 const roles_enum_1 = require("../../common/enum/roles.enum");
 const uuid_1 = require("uuid");
+const disconnect_meter_dto_1 = require("../../dto/iec-dto/disconnect-meter.dto");
+const reconnect_meter_dto_1 = require("../../dto/iec-dto/reconnect-meter.dto");
 let MeterMgtController = class MeterMgtController {
     meterMgtService;
     constructor(meterMgtService) {
@@ -43,10 +45,6 @@ let MeterMgtController = class MeterMgtController {
     async updateMeter(id, dto) {
         return this.meterMgtService.updateMeter(id, dto);
     }
-    async toggleMeterStatus(meterNumber, isActive) {
-        const active = isActive === 'true';
-        return this.meterMgtService.toggleMeterStatus(meterNumber, active);
-    }
     async getMeter(id) {
         return this.meterMgtService.getMeter(id);
     }
@@ -63,6 +61,15 @@ let MeterMgtController = class MeterMgtController {
         const transId = (0, uuid_1.v4)().replace(/-/g, '').slice(0, 16);
         return this.meterMgtService.vend(dto, transId);
     }
+    ;
+    async disconnectMeter(dto) {
+        return this.meterMgtService.disconnectMeter(dto);
+    }
+    ;
+    async reconnectMeter(dto) {
+        return this.meterMgtService.reconnectMeter(dto);
+    }
+    ;
 };
 exports.MeterMgtController = MeterMgtController;
 __decorate([
@@ -115,19 +122,6 @@ __decorate([
     __metadata("design:paramtypes", [String, meter_dto_1.MeterDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "updateMeter", null);
-__decorate([
-    (0, common_1.Put)(':meterNumber/status'),
-    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN),
-    (0, swagger_1.ApiOperation)({ summary: 'Activate or deactivate a meter (auto disconnect/reconnect)' }),
-    (0, swagger_1.ApiParam)({ name: 'meterNumber', description: 'Unique meter number', example: '01123456789' }),
-    (0, swagger_1.ApiQuery)({ name: 'isActive', required: true, example: true }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Meter status updated successfully' }),
-    __param(0, (0, common_1.Param)('meterNumber')),
-    __param(1, (0, common_1.Query)('isActive')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
-    __metadata("design:returntype", Promise)
-], MeterMgtController.prototype, "toggleMeterStatus", null);
 __decorate([
     (0, common_1.Get)(':id'),
     (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
@@ -185,6 +179,24 @@ __decorate([
     __metadata("design:paramtypes", [vend_power_dto_1.VendPowerDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "vend", null);
+__decorate([
+    (0, common_1.Post)('disconnect-meter'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({ summary: 'Disconnect meter' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [disconnect_meter_dto_1.DisconnectMeterDto]),
+    __metadata("design:returntype", Promise)
+], MeterMgtController.prototype, "disconnectMeter", null);
+__decorate([
+    (0, common_1.Post)('reconnect-meter'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({ summary: 'Reconnect meter' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [reconnect_meter_dto_1.ReconnectMeterDto]),
+    __metadata("design:returntype", Promise)
+], MeterMgtController.prototype, "reconnectMeter", null);
 exports.MeterMgtController = MeterMgtController = __decorate([
     (0, swagger_1.ApiTags)('Meter Management'),
     (0, swagger_1.ApiBearerAuth)('access-token'),

@@ -9,6 +9,8 @@ import { Wallet, WalletSchema } from 'src/schema/wallet.schema';
 import { Transaction, TransactionSchema } from 'src/schema/transaction.schema';
 import { Entry, EntrySchema } from 'src/schema/address/entry.schema';
 import { TransactionMgtModule } from '../transaction-mgt/transaction-mgt.module';
+import { IecClientService } from '../iec/iec-client.service';
+import { PendingRequest, PendingRequestSchema } from 'src/schema/ice/pending-request.schema';
 
 @Module({
   imports: [
@@ -22,12 +24,16 @@ import { TransactionMgtModule } from '../transaction-mgt/transaction-mgt.module'
       { name: Wallet.name, schema: WalletSchema },
       { name: MeterReading.name, schema: MeterReadingSchema },
       { name: Entry.name, schema: EntrySchema },
-      { name: Transaction.name, schema: TransactionSchema }, // ✅ Added
+      { name: Transaction.name, schema: TransactionSchema },
+      { name: PendingRequest.name, schema: PendingRequestSchema },
     ]),
 
-    TransactionMgtModule, // ✅ Correct import
+    TransactionMgtModule, 
   ],
   controllers: [MeterMgtController],
-  providers: [MeterMgtService], // ✅ Removed TransactionMgtService here
+  providers: [
+    MeterMgtService, 
+    IecClientService,
+  ], 
 })
 export class MeterMgtModule {}

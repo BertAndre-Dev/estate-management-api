@@ -1,6 +1,8 @@
 import { MeterMgtService } from './meter-mgt.service';
 import { MeterDto } from 'src/dto/meter.dto';
 import { VendPowerDto } from 'src/dto/vend-power.dto';
+import { DisconnectMeterDto } from 'src/dto/iec-dto/disconnect-meter.dto';
+import { ReconnectMeterDto } from 'src/dto/iec-dto/reconnect-meter.dto';
 export declare class MeterMgtController {
     private readonly meterMgtService;
     constructor(meterMgtService: MeterMgtService);
@@ -27,11 +29,6 @@ export declare class MeterMgtController {
     updateMeter(id: string, dto: MeterDto): Promise<{
         success: boolean;
         message: string;
-    }>;
-    toggleMeterStatus(meterNumber: string, isActive: string): Promise<{
-        success: boolean;
-        message: string;
-        data: any;
     }>;
     getMeter(id: string): Promise<{
         success: boolean;
@@ -62,6 +59,14 @@ export declare class MeterMgtController {
     }>;
     vend(dto: VendPowerDto): Promise<{
         success: boolean;
+        message: string;
+        data: any;
+    }>;
+    disconnectMeter(dto: DisconnectMeterDto): Promise<{
+        message: string;
+        data: any;
+    }>;
+    reconnectMeter(dto: ReconnectMeterDto): Promise<{
         message: string;
         data: any;
     }>;

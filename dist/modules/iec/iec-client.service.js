@@ -24,7 +24,7 @@ const pending_request_schema_1 = require("../../schema/ice/pending-request.schem
 let IecClientService = IecClientService_1 = class IecClientService {
     pendingModel;
     logger = new common_1.Logger(IecClientService_1.name);
-    baseUrl = process.env.HES_BASE_URL;
+    baseUrl = `${process.env.HES_BASE_URL}`;
     hesToken = null;
     hesTokenFetchedAt = 0;
     TOKEN_TTL = 1000 * 60 * 50;
@@ -37,39 +37,39 @@ let IecClientService = IecClientService_1 = class IecClientService {
             return this.hesToken;
         }
         const payload = {
-            'm:GetUserToken': {
-                'm:UserID': process.env.HES_USER,
-                'm:Password': process.env.HES_PASS,
+            "m:GetUserToken": {
+                UserID: process.env.HES_USER,
+                Password: process.env.HES_PASS,
             },
         };
         const resp = await this.postRequest('GetUserToken', payload);
         const ack = resp?.ack;
-        const token = ack?.Payload?.['m:GetUserToken']?.['m:Authorization'] ||
-            ack?.Payload?.GetUserToken?.Authorization ||
-            ack?.Payload?.Authorization;
+        const token = ack?.ResponseMessage?.Payload?.['m:GetUserToken']?.['m:Authorization'];
+        if (!token) {
+            this.logger.error('❌ Failed to extract token from GetUserToken response');
+            throw new Error('Token extraction failed');
+        }
         this.hesToken = token;
         this.hesTokenFetchedAt = now;
-        this.logger.log(`🔐 New HES token acquired`);
-        return this.hesToken;
+        this.logger.log(`🔐 New HES Token acquired successfully`);
+        return token;
     }
     resolveVerb(noun) {
-        switch (noun) {
-            case 'EndDeviceControls':
-                return 'create';
-            default:
-                return 'get';
-        }
+        if (noun === 'EndDeviceControls')
+            return 'create';
+        return 'get';
     }
     async postRequest(noun, payload, authToken) {
         const verb = this.resolveVerb(noun);
         const header = (0, header_utils_1.createHeader)({
             verb,
             noun,
-            asyncReply: true,
+            asyncReply: verb === 'create',
             replyAddress: process.env.HES_CALLBACK_URL,
             authorization: authToken,
         });
-        const xml = (0, iec_xml_utils_1.buildRequestMessage)(header, payload);
+        const xml = (0, iec_xml_utils_1.buildRequestMessage)(header)(payload);
+        this.logger.debug(`📤 Sending IEC XML → HES:\n${xml}`);
         await this.pendingModel.create({
             messageId: header.MessageID,
             noun,
@@ -79,16 +79,20 @@ let IecClientService = IecClientService_1 = class IecClientService {
             replyAddress: header.ReplyAddress,
         });
         const resp = await axios_1.default.post(this.baseUrl, xml, {
-            headers: { 'Content-Type': 'application/xml', Accept: 'application/xml' },
+            headers: {
+                'Content-Type': 'application/xml',
+                Accept: 'application/xml',
+            },
+            timeout: Number(process.env.HES_TIMEOUT || 20000),
             validateStatus: () => true,
-            timeout: Number(process.env.HES_TIMEOUT || 15000),
         });
+        this.logger.debug(`📥 HES Immediate Response (${resp.status}):\n${resp.data}`);
         let ack = null;
         try {
             ack = (0, iec_xml_utils_1.parseResponse)(resp.data);
         }
-        catch (err) {
-            this.logger.warn('Could not parse immediate ACK XML');
+        catch {
+            this.logger.warn('⚠ Could not parse ACK from HES');
         }
         return {
             noun,
@@ -98,6 +102,52 @@ let IecClientService = IecClientService_1 = class IecClientService {
             raw: resp.data,
             status: resp.status,
         };
+    }
+    async disconnectMeter(meterNumber) {
+        const token = await this.getToken();
+        const payload = {
+            "m:EndDeviceControls": {
+                "m:EndDeviceControl": {
+                    "m:reason": "Disconnect/Reconnect",
+                    "m:EndDeviceControlType": {
+                        "@_ref": "3.0.211.23"
+                    },
+                    "m:EndDevices": {
+                        "m:mRID": meterNumber,
+                        "m:Names": {
+                            "m:name": "DisConnect",
+                            "m:NameType": {
+                                "m:name": "ControlType"
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        return this.postRequest('EndDeviceControls', payload, token);
+    }
+    async reconnectMeter(meterNumber) {
+        const token = await this.getToken();
+        const payload = {
+            "m:EndDeviceControls": {
+                "m:EndDeviceControl": {
+                    "m:reason": "Disconnect/Reconnect",
+                    "m:EndDeviceControlType": {
+                        "@_ref": "3.0.211.23"
+                    },
+                    "m:EndDevices": {
+                        "m:mRID": meterNumber,
+                        "m:Names": {
+                            "m:name": "Reconnect",
+                            "m:NameType": {
+                                "m:name": "ControlType"
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        return this.postRequest('EndDeviceControls', payload, token);
     }
     async getMeterReadings(meterNumber, obis) {
         const token = await this.getToken();
@@ -112,45 +162,7 @@ let IecClientService = IecClientService_1 = class IecClientService {
                 },
             },
         };
-        return this.postRequest('MeterReadings', payload, token);
-    }
-    async disconnectMeter(meterNumber) {
-        const token = await this.getToken();
-        const payload = {
-            'm:EndDeviceControls': {
-                'm:EndDeviceControl': {
-                    'm:reason': 'Disconnect',
-                    'm:EndDeviceControlType': { '@_ref': '3.0.211.23' },
-                    'm:EndDevices': {
-                        'm:mRID': meterNumber,
-                        'm:Names': {
-                            'm:name': 'DisConnect',
-                            'm:NameType': { 'm:name': 'ControlType' },
-                        },
-                    },
-                },
-            },
-        };
-        return this.postRequest('EndDeviceControls', payload, token);
-    }
-    async reconnectMeter(meterNumber) {
-        const token = await this.getToken();
-        const payload = {
-            'm:EndDeviceControls': {
-                'm:EndDeviceControl': {
-                    'm:reason': 'Reconnect',
-                    'm:EndDeviceControlType': { '@_ref': '3.0.211.23' },
-                    'm:EndDevices': {
-                        'm:mRID': meterNumber,
-                        'm:Names': {
-                            'm:name': 'ReConnect',
-                            'm:NameType': { 'm:name': 'ControlType' },
-                        },
-                    },
-                },
-            },
-        };
-        return this.postRequest('EndDeviceControls', payload, token);
+        return this.postRequest('GetMeterReadings', payload, token);
     }
     async getHistoryData(meterNumber, dTypeID, start, end) {
         const token = await this.getToken();

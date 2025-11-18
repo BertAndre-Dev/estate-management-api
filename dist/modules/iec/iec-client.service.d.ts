@@ -11,14 +11,6 @@ export declare class IecClientService {
     private getToken;
     private resolveVerb;
     private postRequest;
-    getMeterReadings(meterNumber: string, obis: string): Promise<{
-        noun: string;
-        messageId: string;
-        correlationId: string;
-        ack: null;
-        raw: any;
-        status: number;
-    }>;
     disconnectMeter(meterNumber: string): Promise<{
         noun: string;
         messageId: string;
@@ -28,6 +20,14 @@ export declare class IecClientService {
         status: number;
     }>;
     reconnectMeter(meterNumber: string): Promise<{
+        noun: string;
+        messageId: string;
+        correlationId: string;
+        ack: null;
+        raw: any;
+        status: number;
+    }>;
+    getMeterReadings(meterNumber: string, obis: string): Promise<{
         noun: string;
         messageId: string;
         correlationId: string;

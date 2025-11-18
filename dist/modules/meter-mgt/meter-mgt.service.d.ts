@@ -8,9 +8,13 @@ import { TransactionMgtService } from '../transaction-mgt/transaction-mgt.servic
 import { WalletDocument } from 'src/schema/wallet.schema';
 import { Transaction } from 'src/schema/transaction.schema';
 import { EntryDocument } from 'src/schema/address/entry.schema';
+import { IecClientService } from '../iec/iec-client.service';
+import { DisconnectMeterDto } from 'src/dto/iec-dto/disconnect-meter.dto';
+import { ReconnectMeterDto } from 'src/dto/iec-dto/reconnect-meter.dto';
 export declare class MeterMgtService {
     private http;
     private transaction;
+    private ice;
     private meterReadingModel;
     private meterModel;
     private walletModel;
@@ -18,7 +22,7 @@ export declare class MeterMgtService {
     private entryModel;
     private baseUrl;
     private readonly logger;
-    constructor(http: HttpService, transaction: TransactionMgtService, meterReadingModel: Model<MeterReadingDocument>, meterModel: Model<MeterDocument>, walletModel: Model<WalletDocument>, transactionModel: Model<Transaction>, entryModel: Model<EntryDocument>);
+    constructor(http: HttpService, transaction: TransactionMgtService, ice: IecClientService, meterReadingModel: Model<MeterReadingDocument>, meterModel: Model<MeterDocument>, walletModel: Model<WalletDocument>, transactionModel: Model<Transaction>, entryModel: Model<EntryDocument>);
     addMeter(dto: MeterDto): Promise<{
         success: boolean;
         message: string;
@@ -59,8 +63,11 @@ export declare class MeterMgtService {
         message: string;
         data: any;
     }>;
-    toggleMeterStatus(meterNumber: string, isActive: boolean): Promise<{
-        success: boolean;
+    disconnectMeter(dto: DisconnectMeterDto): Promise<{
+        message: string;
+        data: any;
+    }>;
+    reconnectMeter(dto: ReconnectMeterDto): Promise<{
         message: string;
         data: any;
     }>;
@@ -86,7 +93,5 @@ export declare class MeterMgtService {
     private verifyMeterWithVendor;
     private registerMeterWithVendor;
     private updateMeterOnVendor;
-    private disconnectMeter;
-    private reconnectMeter;
     private formatLocalDateTime;
 }

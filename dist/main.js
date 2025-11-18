@@ -9,8 +9,8 @@ const cookieParser = require("cookie-parser");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.use(cookieParser());
-    app.use(bodyParser.json({ limit: '10mb' }));
-    app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+    app.use(bodyParser.json({ limit: '200mb' }));
+    app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }));
     app.use(bodyParser.text({ type: ['application/xml', 'text/*', 'application/*+xml'] }));
     app.enableShutdownHooks();
     app.enableCors({

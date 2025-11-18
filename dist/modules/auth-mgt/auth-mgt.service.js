@@ -28,14 +28,14 @@ let AuthMgtService = class AuthMgtService {
     userModel;
     jwt;
     config;
-    wallet;
     cloudinary;
-    constructor(userModel, jwt, config, wallet, cloudinary) {
+    wallet;
+    constructor(userModel, jwt, config, cloudinary, wallet) {
         this.userModel = userModel;
         this.jwt = jwt;
         this.config = config;
-        this.wallet = wallet;
         this.cloudinary = cloudinary;
+        this.wallet = wallet;
     }
     async signUp(dto) {
         const normalizeEmail = dto.email.toLowerCase().trim();
@@ -601,11 +601,11 @@ let AuthMgtService = class AuthMgtService {
         const [accessToken, refreshToken] = await Promise.all([
             this.jwt.signAsync(payload, {
                 secret: this.config.get('JWT_SECRET'),
-                expiresIn: '30m',
+                expiresIn: '7d',
             }),
             this.jwt.signAsync(payload, {
                 secret: this.config.get('JWT_REFRESH_TOKEN'),
-                expiresIn: '7d',
+                expiresIn: '30d',
             }),
         ]);
         return {
@@ -694,7 +694,7 @@ exports.AuthMgtService = AuthMgtService = __decorate([
     __metadata("design:paramtypes", [mongoose_2.Model,
         jwt_1.JwtService,
         config_1.ConfigService,
-        wallet_mgt_service_1.WalletMgtService,
-        cloudinary_service_1.CloudinaryService])
+        cloudinary_service_1.CloudinaryService,
+        wallet_mgt_service_1.WalletMgtService])
 ], AuthMgtService);
 //# sourceMappingURL=auth-mgt.service.js.map

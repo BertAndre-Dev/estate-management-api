@@ -17,9 +17,9 @@ export declare class AuthMgtService {
     private userModel;
     private jwt;
     private config;
-    private wallet;
     private cloudinary;
-    constructor(userModel: Model<UserDocument>, jwt: JwtService, config: ConfigService, wallet: WalletMgtService, cloudinary: CloudinaryService);
+    private wallet;
+    constructor(userModel: Model<UserDocument>, jwt: JwtService, config: ConfigService, cloudinary: CloudinaryService, wallet: WalletMgtService);
     signUp(dto: CreateUserDto): Promise<{
         success: boolean;
         message: string;

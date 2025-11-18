@@ -29,8 +29,8 @@ export class AuthMgtService {
         @InjectModel(User.name) private userModel: Model<UserDocument>,
         private jwt: JwtService,
         private config: ConfigService,
+        private cloudinary: CloudinaryService,
         private wallet: WalletMgtService,
-        private cloudinary: CloudinaryService
     ){}
 
 
@@ -846,11 +846,11 @@ export class AuthMgtService {
         const [ accessToken, refreshToken ] = await Promise.all([
         this.jwt.signAsync(payload, {
             secret: this.config.get('JWT_SECRET'),
-            expiresIn: '30m',
+            expiresIn: '7d',
         }),
         this.jwt.signAsync(payload, {
             secret: this.config.get('JWT_REFRESH_TOKEN'),
-            expiresIn: '7d',
+            expiresIn: '30d',
         }),
         ]);
 

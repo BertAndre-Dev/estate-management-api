@@ -15,6 +15,9 @@ import { TransactionMgtService } from '../transaction-mgt/transaction-mgt.servic
 import { Wallet, WalletDocument } from 'src/schema/wallet.schema';
 import { Transaction, TransactionDocument } from 'src/schema/transaction.schema';
 import { Entry, EntryDocument } from 'src/schema/address/entry.schema';
+import { IecClientService } from '../iec/iec-client.service';
+import { DisconnectMeterDto } from 'src/dto/iec-dto/disconnect-meter.dto';
+import { ReconnectMeterDto } from 'src/dto/iec-dto/reconnect-meter.dto';
 
 @Injectable()
 export class MeterMgtService {
@@ -24,6 +27,7 @@ export class MeterMgtService {
   constructor(
     private http: HttpService,
     private transaction: TransactionMgtService,
+    private ice: IecClientService,
     @InjectModel(MeterReading.name) private meterReadingModel: Model<MeterReadingDocument>,
     @InjectModel(Meter.name) private meterModel: Model<MeterDocument>,
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
@@ -31,41 +35,6 @@ export class MeterMgtService {
     @InjectModel(Entry.name) private entryModel: Model<EntryDocument>,
   ) {}
 
-
-    // 🔋 Power usage history 
-    // async getPowerUsage(meterNumber: string, days = 1) {
-    //     try {
-    //         // 1) Vendor lookup first
-    //         const vendorData = await this.lookupMeterFromMerchant(meterNumber);
-
-    //         // 2) DB usage calculation as before
-    //         const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    //         const readings = await this.meterReadingModel
-    //         .find({ meterNumber, createdAt: { $gte: since } })
-    //         .sort({ createdAt: 1 });
-
-    //         const used = readings.length > 1
-    //         ? (readings.at(-1)?.energy ?? 0) - (readings[0]?.energy ?? 0)
-    //         : 0;
-
-    //         const tariff = parseFloat(process.env.TARIFF_RATE || '100');
-    //         const cost = used * tariff;
-
-    //         return {
-    //         success: true,
-    //         message: 'Meter usage retrieved successfully.',
-    //         data: {
-    //             meterNumber,
-    //             vendorData,
-    //             energyUsed: used,
-    //             estimatedCost: cost,
-    //             tariffRate: tariff,
-    //         },
-    //         };
-    //     } catch (error) {
-    //         throw new BadRequestException(error.message);
-    //     }
-    // }
 
 
     // Add meter to an estate
@@ -398,33 +367,101 @@ export class MeterMgtService {
 
 
     // Toggle meter status
-    async toggleMeterStatus(meterNumber: string, isActive: boolean) {
+    // async toggleMeterStatus(meterNumber: string, isActive: boolean) {
+    //     try {
+    //         const meter = await this.meterModel.findOne({ meterNumber });
+    //         if (!meter) throw new BadRequestException('Meter not found.');
+
+    //         // Update status locally
+    //         meter.isActive = isActive;
+    //         await meter.save();
+
+    //         // Optional: Sync with vendor side
+    //         const token = await this.getVendorAuthToken();
+
+    //         if (!isActive) {
+    //         await this.disconnectMeter(meterNumber);
+    //         this.logger.log(`Meter ${meterNumber} deactivated and disconnected.`);
+    //         } else {
+    //         await this.reconnectMeter(meterNumber);
+    //         this.logger.log(`Meter ${meterNumber} reactivated and reconnected.`);
+    //         }
+
+    //         return {
+    //             success: true,
+    //             message: `Meter ${isActive ? 'activated' : 'deactivated'} successfully`,
+    //             data: toResponseObject(meter),
+    //         };
+    //     } catch (error) {
+    //         throw new BadRequestException(error.message || 'Unable to toggle meter status.');
+    //     }
+    // }
+
+
+    // Disconnect a meter using AMI
+    async disconnectMeter(dto: DisconnectMeterDto) {
         try {
-            const meter = await this.meterModel.findOne({ meterNumber });
-            if (!meter) throw new BadRequestException('Meter not found.');
+            // Call the IEC API to disconnect the meter
+            const response = await this.ice.disconnectMeter(dto.meterNumber);
 
-            // Update status locally
-            meter.isActive = isActive;
-            await meter.save();
+            // Extract the IEC reply (cast to any to avoid narrow 'never' type inference)
+            const reply = (response as any)?.ack?.ResponseMessage?.Reply;
 
-            // Optional: Sync with vendor side
-            const token = await this.getVendorAuthToken();
-
-            if (!isActive) {
-            await this.disconnectMeter(meterNumber);
-            this.logger.log(`Meter ${meterNumber} deactivated and disconnected.`);
-            } else {
-            await this.reconnectMeter(meterNumber);
-            this.logger.log(`Meter ${meterNumber} reactivated and reconnected.`);
+            if (!reply || reply.Result !== 'OK' || reply.Error?.code !== '0.0') {
+            throw new NotFoundException(
+                `Meter ${dto.meterNumber} could not be disconnected.`
+            );
             }
 
+            // Return success info
             return {
-            success: true,
-            message: `Meter ${isActive ? 'activated' : 'deactivated'} successfully`,
-            data: toResponseObject(meter),
+                message: `Meter ${dto.meterNumber} disconnected successfully.`,
+                data: reply,
             };
         } catch (error) {
-            throw new BadRequestException(error.message || 'Unable to toggle meter status.');
+            // Handle known IEC API errors
+            if (error.response) {
+            throw new Error(
+                `IEC API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`
+            );
+            }
+
+            // Fallback error
+            throw new Error(`Failed to disconnect meter: ${error.message}`);
+        }
+    };
+
+
+    // Disconnect a meter using AMI
+    async reconnectMeter(dto: ReconnectMeterDto) {
+        try {
+            // Call the IEC API to disconnect the meter
+            const response = await this.ice.reconnectMeter(dto.meterNumber);
+
+            // Extract the IEC reply (cast to any to avoid narrow 'never' type inference)
+            const reply = (response as any)?.ack?.ResponseMessage?.Reply;
+
+            if (!reply || reply.Result !== 'OK' || reply.Error?.code !== '0.0') {
+            throw new NotFoundException(
+                `Meter ${dto.meterNumber} could not be reconnected.`
+            );
+            }
+
+            // Return success info
+            return {
+                message: `Meter ${dto.meterNumber} reconnected successfully.`,
+                data: reply,
+            };
+        } catch (error) {
+            // Handle known IEC API errors
+            if (error.response) {
+            throw new Error(
+                `IEC API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`
+            );
+            }
+
+            // Fallback error
+            throw new Error(`Failed to reconnected meter: ${error.message}`);
         }
     }
 
@@ -720,21 +757,21 @@ export class MeterMgtService {
     }
 
 
-    private async disconnectMeter(meterNo: string) {
-        try {
-            await firstValueFrom(this.http.post(`${this.baseUrl}/disconnect`, { meterNo }));
-        } catch (error) {
-            throw new BadRequestException(error.message);
-        }
-    }
+    // private async disconnectMeter(meterNo: string) {
+    //     try {
+    //         await firstValueFrom(this.http.post(`${this.baseUrl}/disconnect`, { meterNo }));
+    //     } catch (error) {
+    //         throw new BadRequestException(error.message);
+    //     }
+    // }
 
-    private async reconnectMeter(meterNo: string) {
-        try {
-            await firstValueFrom(this.http.post(`${this.baseUrl}/reconnect`, { meterNo }));
-        } catch (error) {
-            throw new BadRequestException(error.message);
-        }
-    }
+    // private async reconnectMeter(meterNo: string) {
+    //     try {
+    //         await firstValueFrom(this.http.post(`${this.baseUrl}/reconnect`, { meterNo }));
+    //     } catch (error) {
+    //         throw new BadRequestException(error.message);
+    //     }
+    // }
 
 
     private formatLocalDateTime(): string {

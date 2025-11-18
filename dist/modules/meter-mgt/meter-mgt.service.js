@@ -28,9 +28,11 @@ const transaction_mgt_service_1 = require("../transaction-mgt/transaction-mgt.se
 const wallet_schema_1 = require("../../schema/wallet.schema");
 const transaction_schema_1 = require("../../schema/transaction.schema");
 const entry_schema_1 = require("../../schema/address/entry.schema");
+const iec_client_service_1 = require("../iec/iec-client.service");
 let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
     http;
     transaction;
+    ice;
     meterReadingModel;
     meterModel;
     walletModel;
@@ -38,9 +40,10 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
     entryModel;
     baseUrl = process.env.STS_API_URL;
     logger = new common_1.Logger(MeterMgtService_1.name);
-    constructor(http, transaction, meterReadingModel, meterModel, walletModel, transactionModel, entryModel) {
+    constructor(http, transaction, ice, meterReadingModel, meterModel, walletModel, transactionModel, entryModel) {
         this.http = http;
         this.transaction = transaction;
+        this.ice = ice;
         this.meterReadingModel = meterReadingModel;
         this.meterModel = meterModel;
         this.walletModel = walletModel;
@@ -285,30 +288,43 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             throw new common_1.BadRequestException(error.message);
         }
     }
-    async toggleMeterStatus(meterNumber, isActive) {
+    async disconnectMeter(dto) {
         try {
-            const meter = await this.meterModel.findOne({ meterNumber });
-            if (!meter)
-                throw new common_1.BadRequestException('Meter not found.');
-            meter.isActive = isActive;
-            await meter.save();
-            const token = await this.getVendorAuthToken();
-            if (!isActive) {
-                await this.disconnectMeter(meterNumber);
-                this.logger.log(`Meter ${meterNumber} deactivated and disconnected.`);
-            }
-            else {
-                await this.reconnectMeter(meterNumber);
-                this.logger.log(`Meter ${meterNumber} reactivated and reconnected.`);
+            const response = await this.ice.disconnectMeter(dto.meterNumber);
+            const reply = response?.ack?.ResponseMessage?.Reply;
+            if (!reply || reply.Result !== 'OK' || reply.Error?.code !== '0.0') {
+                throw new common_1.NotFoundException(`Meter ${dto.meterNumber} could not be disconnected.`);
             }
             return {
-                success: true,
-                message: `Meter ${isActive ? 'activated' : 'deactivated'} successfully`,
-                data: (0, transform_util_1.toResponseObject)(meter),
+                message: `Meter ${dto.meterNumber} disconnected successfully.`,
+                data: reply,
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message || 'Unable to toggle meter status.');
+            if (error.response) {
+                throw new Error(`IEC API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+            }
+            throw new Error(`Failed to disconnect meter: ${error.message}`);
+        }
+    }
+    ;
+    async reconnectMeter(dto) {
+        try {
+            const response = await this.ice.reconnectMeter(dto.meterNumber);
+            const reply = response?.ack?.ResponseMessage?.Reply;
+            if (!reply || reply.Result !== 'OK' || reply.Error?.code !== '0.0') {
+                throw new common_1.NotFoundException(`Meter ${dto.meterNumber} could not be reconnected.`);
+            }
+            return {
+                message: `Meter ${dto.meterNumber} reconnected successfully.`,
+                data: reply,
+            };
+        }
+        catch (error) {
+            if (error.response) {
+                throw new Error(`IEC API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+            }
+            throw new Error(`Failed to reconnected meter: ${error.message}`);
         }
     }
     async lookupMeterFromMerchant(meterNumber) {
@@ -516,22 +532,6 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
         }
         return data;
     }
-    async disconnectMeter(meterNo) {
-        try {
-            await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/disconnect`, { meterNo }));
-        }
-        catch (error) {
-            throw new common_1.BadRequestException(error.message);
-        }
-    }
-    async reconnectMeter(meterNo) {
-        try {
-            await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/reconnect`, { meterNo }));
-        }
-        catch (error) {
-            throw new common_1.BadRequestException(error.message);
-        }
-    }
     formatLocalDateTime() {
         const now = new Date();
         const year = now.getFullYear();
@@ -546,13 +546,14 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
 exports.MeterMgtService = MeterMgtService;
 exports.MeterMgtService = MeterMgtService = MeterMgtService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __param(2, (0, mongoose_1.InjectModel)(meter_reading_schema_1.MeterReading.name)),
-    __param(3, (0, mongoose_1.InjectModel)(meter_schema_1.Meter.name)),
-    __param(4, (0, mongoose_1.InjectModel)(wallet_schema_1.Wallet.name)),
-    __param(5, (0, mongoose_1.InjectModel)(transaction_schema_1.Transaction.name)),
-    __param(6, (0, mongoose_1.InjectModel)(entry_schema_1.Entry.name)),
+    __param(3, (0, mongoose_1.InjectModel)(meter_reading_schema_1.MeterReading.name)),
+    __param(4, (0, mongoose_1.InjectModel)(meter_schema_1.Meter.name)),
+    __param(5, (0, mongoose_1.InjectModel)(wallet_schema_1.Wallet.name)),
+    __param(6, (0, mongoose_1.InjectModel)(transaction_schema_1.Transaction.name)),
+    __param(7, (0, mongoose_1.InjectModel)(entry_schema_1.Entry.name)),
     __metadata("design:paramtypes", [axios_1.HttpService,
         transaction_mgt_service_1.TransactionMgtService,
+        iec_client_service_1.IecClientService,
         mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,

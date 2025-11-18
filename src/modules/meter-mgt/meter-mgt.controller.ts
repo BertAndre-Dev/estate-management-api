@@ -18,7 +18,8 @@ import { RoleGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorstor';
 import { Role } from 'src/common/enum/roles.enum';
 import { v4 as uuid } from 'uuid';
-import { LookupMeterDto } from 'src/dto/look-up-meter.dto';
+import { DisconnectMeterDto } from 'src/dto/iec-dto/disconnect-meter.dto';
+import { ReconnectMeterDto } from 'src/dto/iec-dto/reconnect-meter.dto';
 
 @ApiTags('Meter Management')
 @ApiBearerAuth('access-token')
@@ -77,19 +78,19 @@ export class MeterMgtController {
   }
 
   // 🔌 Toggle meter active/inactive
-  @Put(':meterNumber/status')
-  @Roles(Role.SUPERADMIN, Role.ADMIN)
-  @ApiOperation({ summary: 'Activate or deactivate a meter (auto disconnect/reconnect)' })
-  @ApiParam({ name: 'meterNumber', description: 'Unique meter number', example: '01123456789' })
-  @ApiQuery({ name: 'isActive', required: true, example: true })
-  @ApiResponse({ status: 200, description: 'Meter status updated successfully' })
-  async toggleMeterStatus(
-    @Param('meterNumber') meterNumber: string,
-    @Query('isActive') isActive: string,
-  ) {
-    const active = isActive === 'true';
-    return this.meterMgtService.toggleMeterStatus(meterNumber, active);
-  }
+  // @Put(':meterNumber/status')
+  // @Roles(Role.SUPERADMIN, Role.ADMIN)
+  // @ApiOperation({ summary: 'Activate or deactivate a meter (auto disconnect/reconnect)' })
+  // @ApiParam({ name: 'meterNumber', description: 'Unique meter number', example: '01123456789' })
+  // @ApiQuery({ name: 'isActive', required: true, example: true })
+  // @ApiResponse({ status: 200, description: 'Meter status updated successfully' })
+  // async toggleMeterStatus(
+  //   @Param('meterNumber') meterNumber: string,
+  //   @Query('isActive') isActive: string,
+  // ) {
+  //   const active = isActive === 'true';
+  //   return this.meterMgtService.toggleMeterStatus(meterNumber, active);
+  // }
 
   // 🔍 Get single meter by ID
   @Get(':id')
@@ -129,19 +130,6 @@ export class MeterMgtController {
   }
 
 
-  // ⚡ Get power usage for a meter
-  // @Get(':meterNumber/usage')
-  // @Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT)
-  // @ApiOperation({ summary: 'Get power usage and estimated cost for a meter' })
-  // @ApiParam({ name: 'meterNumber', description: 'Meter number', example: '01123456789' })
-  // @ApiQuery({ name: 'days', required: false, example: 7, description: 'Number of days to analyze' })
-  // @ApiResponse({ status: 200, description: 'Power usage retrieved successfully' })
-  // async getPowerUsage(
-  //   @Param('meterNumber') meterNumber: string,
-  //   @Query('days') days = 1,
-  // ) {
-  //   return this.meterMgtService.getPowerUsage(meterNumber, Number(days));
-  // }
 
   // 🧪 Trial Vend (No token generated, validation only)
   @Post('vend/trial')
@@ -160,5 +148,31 @@ export class MeterMgtController {
   async vend(@Body() dto: VendPowerDto) {
     const transId = uuid().replace(/-/g, '').slice(0, 16); // ✅ required 16 char vendor trans ID
     return this.meterMgtService.vend(dto, transId);
-  }
+  };
+
+
+  // Disconnect meter
+  @Post('disconnect-meter')
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT)
+  @ApiOperation({ summary: 'Disconnect meter' })
+  async disconnectMeter(
+    @Body() dto: DisconnectMeterDto
+  ) {
+    return this.meterMgtService.disconnectMeter(dto)
+  };
+
+
+  // Reconnect meter
+  @Post('reconnect-meter')
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT)
+  @ApiOperation({ summary: 'Reconnect meter' })
+  async reconnectMeter(
+    @Body() dto: ReconnectMeterDto
+  ) {
+    return this.meterMgtService.reconnectMeter(dto)
+  };
+
+
+
+
 }

@@ -11,8 +11,8 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // 🔧 Set max request body size to 200MB
-  app.use(bodyParser.json({ limit: '10mb' }));
-  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+  app.use(bodyParser.json({ limit: '200mb' }));
+  app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }));
   // Parse text/plain and application/xml bodies as text so we can parse XML manually
   app.use(bodyParser.text({ type: ['application/xml', 'text/*', 'application/*+xml'] }));
   app.enableShutdownHooks();
