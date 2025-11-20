@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,20 +7,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ResendOtpDto = void 0;
-const swagger_1 = require("@nestjs/swagger");
-const class_validator_1 = require("class-validator");
-class ResendOtpDto {
+import { ApiProperty } from "@nestjs/swagger";
+import { IsNotEmpty, IsEmail } from "class-validator";
+export class ResendOtpDto {
     email;
 }
-exports.ResendOtpDto = ResendOtpDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({
+    ApiProperty({
         example: 'example@mail.com'
     }),
-    (0, class_validator_1.IsEmail)(),
-    (0, class_validator_1.IsNotEmpty)(),
+    IsEmail(),
+    IsNotEmpty(),
     __metadata("design:type", String)
 ], ResendOtpDto.prototype, "email", void 0);
 //# sourceMappingURL=resend-otp.dto.js.map

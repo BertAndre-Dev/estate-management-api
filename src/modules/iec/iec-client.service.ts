@@ -29,7 +29,7 @@ export class IecClientService {
   // TOKEN HANDLING
   // -------------------------------------------------------
 
-  private async getToken(): Promise<string> {
+  public async getToken(): Promise<string> {
     const now = Date.now();
 
     if (this.hesToken && now - this.hesTokenFetchedAt < this.TOKEN_TTL) {
@@ -161,7 +161,7 @@ export class IecClientService {
 
 
     return this.postRequest('EndDeviceControls', payload, token);
-  }
+  };
 
   async reconnectMeter(meterNumber: string) {
     const token = await this.getToken();
@@ -187,7 +187,7 @@ export class IecClientService {
     };
 
     return this.postRequest('EndDeviceControls', payload, token);
-  }
+  };
 
   async getMeterReadings(meterNumber: string, obis: string) {
     const token = await this.getToken();
@@ -205,7 +205,7 @@ export class IecClientService {
     };
 
     return this.postRequest('GetMeterReadings', payload, token);
-  }
+  };
 
   async getHistoryData(meterNumber: string, dTypeID: string, start: string, end: string) {
     const token = await this.getToken();
@@ -221,7 +221,7 @@ export class IecClientService {
     };
 
     return this.postRequest('HistoryDataMeter', payload, token);
-  }
+  };
 
   async pageMeters() {
     const token = await this.getToken();
@@ -236,7 +236,29 @@ export class IecClientService {
     };
 
     return this.postRequest('PageMeters', payload, token);
-  }
+  };
+
+  async sendToken(meterNumber: string, tokenValue: string) {
+    const token = await this.getToken();
+
+    const payload = {
+      'm:EndDeviceControls': {
+        'm:EndDeviceControl': {
+          'm:reason': 'sendTokens',
+          'm:EndDeviceControlType': { '@_ref': '15.13.112.78' },
+          'm:EndDevices': {
+            'm:mRID': meterNumber,
+            'm:Names': {
+              'm:name': tokenValue
+            }
+          }
+        }
+      }
+    };
+
+    return this.postRequest('EndDeviceControls', payload, token);
+  };
+
 
   async detailsMeter(meterNumber: string) {
     const token = await this.getToken();

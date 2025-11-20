@@ -47,9 +47,9 @@ export class EstateMgtService {
             const savedEstate = await newEstate.save();
 
             return {
-            success: true,
-            message: 'Estate created successfully.',
-            data: toResponseObject(savedEstate),
+                success: true,
+                message: 'Estate created successfully.',
+                data: toResponseObject(savedEstate),
             };
         } catch (error) {
             if (error.code === 11000) {
@@ -65,44 +65,44 @@ export class EstateMgtService {
 
     // update estate
     async updateEstate(estateId: string, dto: EstateDto) {
-    try {
-        const estate = await this.estateModel.findById(estateId);
+        try {
+            const estate = await this.estateModel.findById(estateId);
 
-        if (!estate) {
-        throw new NotFoundException("Estate not found");
+            if (!estate) {
+            throw new NotFoundException("Estate not found");
+            }
+
+            // normalize and apply updates
+            estate.name = dto.name?.trim()?.toLowerCase() || estate.name;
+            estate.address = dto.address?.trim() || estate.address;
+            estate.city = dto.city?.trim() || estate.city;
+            estate.state = dto.state?.trim() || estate.state;
+            estate.country = dto.country?.trim() || estate.country;
+
+            // update isActive if provided
+            if (typeof dto.isActive === 'boolean') {
+            estate.isActive = dto.isActive;
+            }
+
+            await estate.save();
+
+            return {
+                success: true,
+                message: "Estate updated successfully.",
+                data: toResponseObject(estate),
+            };
+        } catch (error) {
+            throw new BadRequestException(error.message);
         }
-
-        // normalize and apply updates
-        estate.name = dto.name?.trim()?.toLowerCase() || estate.name;
-        estate.address = dto.address?.trim() || estate.address;
-        estate.city = dto.city?.trim() || estate.city;
-        estate.state = dto.state?.trim() || estate.state;
-        estate.country = dto.country?.trim() || estate.country;
-
-        // update isActive if provided
-        if (typeof dto.isActive === 'boolean') {
-        estate.isActive = dto.isActive;
-        }
-
-        await estate.save();
-
-        return {
-        success: true,
-        message: "Estate updated successfully.",
-        data: toResponseObject(estate),
-        };
-    } catch (error) {
-        throw new BadRequestException(error.message);
-    }
     }
 
 
 
     // get all estates
     async getAllEstates(
-    page: number = 1,
-    limit: number = 10,
-    search?: string,
+        page: number = 1,
+        limit: number = 10,
+        search?: string,
     ) {
     try {
         const query: any = {};

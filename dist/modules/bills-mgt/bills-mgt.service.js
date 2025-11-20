@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -11,18 +10,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BillsMgtService = void 0;
-const common_1 = require("@nestjs/common");
-const mongoose_1 = require("@nestjs/mongoose");
-const mongoose_2 = require("mongoose");
-const wallet_schema_1 = require("../../schema/wallet.schema");
-const bill_schema_1 = require("../../schema/bill-mgt/bill.schema");
-const transform_util_1 = require("../../common/utils/transform.util");
-const resident_bill_schema_1 = require("../../schema/bill-mgt/resident-bill.schema");
-const transaction_mgt_service_1 = require("../transaction-mgt/transaction-mgt.service");
-const date_fns_1 = require("date-fns");
-const user_schema_1 = require("../../schema/user.schema");
+import { Injectable, BadRequestException, NotFoundException, } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Wallet } from "../../schema/wallet.schema";
+import { Bill } from "../../schema/bill-mgt/bill.schema";
+import { toResponseObject } from "../../common/utils/transform.util";
+import { ResidentBill } from "../../schema/bill-mgt/resident-bill.schema";
+import { TransactionMgtService } from '../transaction-mgt/transaction-mgt.service';
+import { addMonths } from 'date-fns';
+import { User } from "../../schema/user.schema";
 let BillsMgtService = class BillsMgtService {
     billModel;
     walletModel;
@@ -44,7 +41,7 @@ let BillsMgtService = class BillsMgtService {
                 name: normalizedName,
             });
             if (existingBill) {
-                throw new common_1.BadRequestException("A bill with this name already exists for this estate.");
+                throw new BadRequestException("A bill with this name already exists for this estate.");
             }
             const bill = new this.billModel({
                 ...dto,
@@ -54,20 +51,20 @@ let BillsMgtService = class BillsMgtService {
             return {
                 success: true,
                 message: "Bill created successfully.",
-                data: (0, transform_util_1.toResponseObject)(savedBill),
+                data: toResponseObject(savedBill),
             };
         }
         catch (error) {
             if (error.code === 11000) {
-                throw new common_1.BadRequestException("Duplicate bill name detected.");
+                throw new BadRequestException("Duplicate bill name detected.");
             }
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getBillsByEstate(estateId, page = 1, limit = 10) {
         try {
             if (!estateId || typeof estateId !== 'string') {
-                throw new common_1.BadRequestException('A valid estateId is required.');
+                throw new BadRequestException('A valid estateId is required.');
             }
             const skip = (page - 1) * limit;
             const query = { estateId: estateId.trim() };
@@ -84,7 +81,7 @@ let BillsMgtService = class BillsMgtService {
                 message: bills.length
                     ? 'Estate bills retrieved successfully.'
                     : 'No bills found for this estate.',
-                data: (0, transform_util_1.toResponseObject)(bills),
+                data: toResponseObject(bills),
                 pagination: {
                     total,
                     page,
@@ -94,30 +91,30 @@ let BillsMgtService = class BillsMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getBill(billId) {
         try {
             const bill = await this.billModel.findById(billId);
             if (!bill) {
-                throw new common_1.NotFoundException("Bill not found.");
+                throw new NotFoundException("Bill not found.");
             }
             return {
                 success: true,
                 message: "Bill retrieved successfully.",
-                data: (0, transform_util_1.toResponseObject)(bill)
+                data: toResponseObject(bill)
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async updateBill(billId, dto) {
         try {
             const bill = await this.billModel.findById(billId);
             if (!bill) {
-                throw new common_1.NotFoundException("Bill not found.");
+                throw new NotFoundException("Bill not found.");
             }
             bill.set({
                 ...dto
@@ -129,14 +126,14 @@ let BillsMgtService = class BillsMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async deleteBill(billId) {
         try {
             const bill = await this.billModel.findByIdAndDelete(billId);
             if (!bill) {
-                throw new common_1.NotFoundException("Bill not found.");
+                throw new NotFoundException("Bill not found.");
             }
             return {
                 success: true,
@@ -144,17 +141,17 @@ let BillsMgtService = class BillsMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async suspendBill(id) {
         try {
             const suspendBill = await this.billModel.findById(id);
             if (!suspendBill) {
-                throw new common_1.NotFoundException("bill not found.");
+                throw new NotFoundException("bill not found.");
             }
             if (!suspendBill.isActive) {
-                throw new common_1.BadRequestException("bill is already suspended.");
+                throw new BadRequestException("bill is already suspended.");
             }
             suspendBill.isActive = false;
             await suspendBill.save();
@@ -164,17 +161,17 @@ let BillsMgtService = class BillsMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async activateBill(id) {
         try {
             const activateBill = await this.billModel.findById(id);
             if (!activateBill) {
-                throw new common_1.NotFoundException("Bill not found.");
+                throw new NotFoundException("Bill not found.");
             }
             if (activateBill.isActive) {
-                throw new common_1.BadRequestException("Bill is already active.");
+                throw new BadRequestException("Bill is already active.");
             }
             activateBill.isActive = true;
             await activateBill.save();
@@ -184,18 +181,18 @@ let BillsMgtService = class BillsMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async payBill(dto) {
         try {
             const bill = await this.billModel.findById(dto.billId);
             if (!bill) {
-                throw new common_1.NotFoundException("Bill not found.");
+                throw new NotFoundException("Bill not found.");
             }
             const wallet = await this.walletModel.findById(dto.walletId);
             if (!wallet) {
-                throw new common_1.NotFoundException("Wallet not found.");
+                throw new NotFoundException("Wallet not found.");
             }
             let amount;
             if (dto.frequency === 'monthly') {
@@ -208,7 +205,7 @@ let BillsMgtService = class BillsMgtService {
                 amount = bill.yearlyAmount;
             }
             if (wallet.balance < amount) {
-                throw new common_1.BadRequestException("Insufficient wallet balance. Top up your wallet.");
+                throw new BadRequestException("Insufficient wallet balance. Top up your wallet.");
             }
             let residentBill = await this.residentBillModel.findOne({
                 userId: dto.userId,
@@ -219,7 +216,7 @@ let BillsMgtService = class BillsMgtService {
                 const nextDue = new Date(residentBill.nextDueDate);
                 const daysDiff = (nextDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
                 if (daysDiff > 5) {
-                    throw new common_1.BadRequestException(`You can only renew this bill 5 days before the next due date. Next due date is ${nextDue.toDateString()}.`);
+                    throw new BadRequestException(`You can only renew this bill 5 days before the next due date. Next due date is ${nextDue.toDateString()}.`);
                 }
             }
             const transactionDto = {
@@ -231,19 +228,19 @@ let BillsMgtService = class BillsMgtService {
             };
             const transactionResult = await this.transactionMgt.createTransaction(transactionDto);
             if (!transactionResult.success === true) {
-                throw new common_1.BadRequestException('Transaction failed, try again.');
+                throw new BadRequestException('Transaction failed, try again.');
             }
             const transactionId = transactionResult.data?.tx_ref;
             const paymentDate = new Date();
             let nextDueDate;
             if (dto.frequency === 'monthly') {
-                nextDueDate = (0, date_fns_1.addMonths)(paymentDate, 1);
+                nextDueDate = addMonths(paymentDate, 1);
             }
             else if (dto.frequency === 'quarterly') {
-                nextDueDate = (0, date_fns_1.addMonths)(paymentDate, 3);
+                nextDueDate = addMonths(paymentDate, 3);
             }
             else {
-                nextDueDate = (0, date_fns_1.addMonths)(paymentDate, 12);
+                nextDueDate = addMonths(paymentDate, 12);
             }
             if (residentBill) {
                 residentBill.lastPaymentDate = paymentDate;
@@ -272,13 +269,13 @@ let BillsMgtService = class BillsMgtService {
                 message: `Payment for ${bill.name} successful`,
                 data: {
                     bill,
-                    transaction: (0, transform_util_1.toResponseObject)(transactionResult.data),
+                    transaction: toResponseObject(transactionResult.data),
                     nextDueDate
                 }
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getResidentBills(userId) {
@@ -308,21 +305,21 @@ let BillsMgtService = class BillsMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
 };
-exports.BillsMgtService = BillsMgtService;
-exports.BillsMgtService = BillsMgtService = __decorate([
-    (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(bill_schema_1.Bill.name)),
-    __param(1, (0, mongoose_1.InjectModel)(wallet_schema_1.Wallet.name)),
-    __param(2, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
-    __param(3, (0, mongoose_1.InjectModel)(resident_bill_schema_1.ResidentBill.name)),
-    __metadata("design:paramtypes", [mongoose_2.Model,
-        mongoose_2.Model,
-        mongoose_2.Model,
-        mongoose_2.Model,
-        transaction_mgt_service_1.TransactionMgtService])
+BillsMgtService = __decorate([
+    Injectable(),
+    __param(0, InjectModel(Bill.name)),
+    __param(1, InjectModel(Wallet.name)),
+    __param(2, InjectModel(User.name)),
+    __param(3, InjectModel(ResidentBill.name)),
+    __metadata("design:paramtypes", [Model,
+        Model,
+        Model,
+        Model,
+        TransactionMgtService])
 ], BillsMgtService);
+export { BillsMgtService };
 //# sourceMappingURL=bills-mgt.service.js.map

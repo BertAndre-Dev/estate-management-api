@@ -13,6 +13,7 @@ import { AddressMgtModule } from './modules/address-mgt/address-mgt.module';
 import { MeterMgtModule } from './modules/meter-mgt/meter-mgt.module';
 import { StsModule } from './modules/sts/sts.module';
 import { IecModule } from './modules/iec/iec.module';
+import { RealtimeModule } from './common/utils/real-time/real-time.module';
 
 
 @Module({
@@ -40,6 +41,7 @@ import { IecModule } from './modules/iec/iec.module';
     MeterMgtModule,
     StsModule,
     IecModule,
+    RealtimeModule,
   ],
   controllers: [],
   providers: [],

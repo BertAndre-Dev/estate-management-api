@@ -14,6 +14,14 @@ export declare class Meter {
     lastSeen?: Date;
     model?: string;
     vendorData?: any;
+    supportedDataTypes?: any[];
+    lastReading?: {
+        timestamp?: string;
+        energy?: number;
+        consumption?: number;
+    } | null;
+    lastTokenKwh?: number;
+    balance?: number;
 }
 export declare const MeterSchema: import("mongoose").Schema<Meter, import("mongoose").Model<Meter, any, any, any, Document<unknown, any, Meter, any, {}> & Meter & {
     _id: import("mongoose").Types.ObjectId;

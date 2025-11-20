@@ -1,14 +1,10 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.buildRequestMessage = buildRequestMessage;
-exports.parseResponse = parseResponse;
-const fast_xml_parser_1 = require("fast-xml-parser");
-const builder = new fast_xml_parser_1.XMLBuilder({
+import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+const builder = new XMLBuilder({
     ignoreAttributes: false,
     format: true,
     attributeNamePrefix: '@_',
 });
-const parser = new fast_xml_parser_1.XMLParser({
+const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
     parseTagValue: false,
@@ -24,7 +20,7 @@ const IEC_WRAPPER = {
     GetMeterReadings: 'Request',
     EndDeviceControls: 'Payload',
 };
-function buildRequestMessage(header) {
+export function buildRequestMessage(header) {
     const noun = header?.Noun;
     const namespace = IEC_NAMESPACES[noun] ||
         'http://iec.ch/TC57/2011/GetMeterReadings#';
@@ -43,7 +39,7 @@ function buildRequestMessage(header) {
         return builder.build(envelope);
     };
 }
-function parseResponse(xml) {
+export function parseResponse(xml) {
     return parser.parse(xml);
 }
 //# sourceMappingURL=iec-xml.utils.js.map

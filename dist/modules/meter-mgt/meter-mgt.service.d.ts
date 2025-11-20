@@ -11,10 +11,12 @@ import { EntryDocument } from 'src/schema/address/entry.schema';
 import { IecClientService } from '../iec/iec-client.service';
 import { DisconnectMeterDto } from 'src/dto/iec-dto/disconnect-meter.dto';
 import { ReconnectMeterDto } from 'src/dto/iec-dto/reconnect-meter.dto';
+import { RealtimeGateway } from "src/common/utils/real-time/real-time.gateway";
 export declare class MeterMgtService {
     private http;
     private transaction;
     private ice;
+    private gateway;
     private meterReadingModel;
     private meterModel;
     private walletModel;
@@ -22,7 +24,8 @@ export declare class MeterMgtService {
     private entryModel;
     private baseUrl;
     private readonly logger;
-    constructor(http: HttpService, transaction: TransactionMgtService, ice: IecClientService, meterReadingModel: Model<MeterReadingDocument>, meterModel: Model<MeterDocument>, walletModel: Model<WalletDocument>, transactionModel: Model<Transaction>, entryModel: Model<EntryDocument>);
+    constructor(http: HttpService, transaction: TransactionMgtService, ice: IecClientService, gateway: RealtimeGateway, meterReadingModel: Model<MeterReadingDocument>, meterModel: Model<MeterDocument>, walletModel: Model<WalletDocument>, transactionModel: Model<Transaction>, entryModel: Model<EntryDocument>);
+    monitorMeters(): Promise<void>;
     addMeter(dto: MeterDto): Promise<{
         success: boolean;
         message: string;

@@ -51,6 +51,23 @@ export class Meter {
 
     @Prop({ type: Object })
     vendorData?: any;
+
+    // --- fields used by realtime monitor & vend flows ---
+    // Supported data types returned by vendor/OBIS service (array of objects)
+    @Prop({ type: Array, default: [] })
+    supportedDataTypes?: any[];
+
+    // Last reading snapshot stored on the Meter document (timestamp, energy, consumption)
+    @Prop({ type: Object, default: null })
+    lastReading?: { timestamp?: string; energy?: number; consumption?: number } | null;
+
+    // Last token energy (kWh) received from a vend (used to compute prepaid balance)
+    @Prop({ type: Number, default: 0 })
+    lastTokenKwh?: number;
+
+    // Computed balance (kWh) for prepaid meters
+    @Prop({ type: Number, default: 0 })
+    balance?: number;
 }
 
 export const MeterSchema = SchemaFactory.createForClass(Meter);

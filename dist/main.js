@@ -1,13 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const core_1 = require("@nestjs/core");
-const app_module_1 = require("./app.module");
-const common_1 = require("@nestjs/common");
-const swagger_1 = require("@nestjs/swagger");
-const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as bodyParser from 'body-parser';
+import * as cookieParser from 'cookie-parser';
 async function bootstrap() {
-    const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    const app = await NestFactory.create(AppModule);
     app.use(cookieParser());
     app.use(bodyParser.json({ limit: '200mb' }));
     app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }));
@@ -19,7 +17,7 @@ async function bootstrap() {
         allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
     });
-    const config = new swagger_1.DocumentBuilder()
+    const config = new DocumentBuilder()
         .setTitle('Estate Mgt API Documentation')
         .setDescription('API endpoints for Estate Mgt App')
         .setVersion('1.0')
@@ -31,9 +29,9 @@ async function bootstrap() {
     }, 'access-token')
         .addSecurityRequirements('access-token')
         .build();
-    const document = swagger_1.SwaggerModule.createDocument(app, config);
-    swagger_1.SwaggerModule.setup('api-docs', app, document);
-    app.useGlobalPipes(new common_1.ValidationPipe({
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api-docs', app, document);
+    app.useGlobalPipes(new ValidationPipe({
         whitelist: true,
     }));
     const port = process.env.PORT ?? 8000;

@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,10 +7,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CloudinaryService = void 0;
-const common_1 = require("@nestjs/common");
-const cloudinary_1 = require("cloudinary");
+import { Injectable } from '@nestjs/common';
+import { v2 as cloudinary } from 'cloudinary';
 let CloudinaryService = class CloudinaryService {
     constructor() {
         this.configureCloudinary();
@@ -22,11 +19,11 @@ let CloudinaryService = class CloudinaryService {
             api_key: process.env.CLOUDINARY_API_KEY,
             api_secret: process.env.CLOUDINARY_API_SECRET,
         };
-        cloudinary_1.v2.config(config);
+        cloudinary.config(config);
     }
     async uploadImage(base64Image, publicId) {
         try {
-            const result = await cloudinary_1.v2.uploader.upload(base64Image, {
+            const result = await cloudinary.uploader.upload(base64Image, {
                 public_id: publicId,
                 resource_type: 'image',
             });
@@ -42,7 +39,7 @@ let CloudinaryService = class CloudinaryService {
     }
     async uploadFile(base64File, publicId) {
         try {
-            const result = await cloudinary_1.v2.uploader.upload(base64File, {
+            const result = await cloudinary.uploader.upload(base64File, {
                 public_id: publicId,
                 resource_type: 'auto',
             });
@@ -57,13 +54,13 @@ let CloudinaryService = class CloudinaryService {
         }
     }
     getOptimizedUrl(publicId) {
-        return cloudinary_1.v2.url(publicId, {
+        return cloudinary.url(publicId, {
             fetch_format: 'auto',
             quality: 'auto',
         });
     }
     getTransformedUrl(publicId) {
-        return cloudinary_1.v2.url(publicId, {
+        return cloudinary.url(publicId, {
             crop: 'fill',
             gravity: 'face',
             width: 500,
@@ -71,9 +68,9 @@ let CloudinaryService = class CloudinaryService {
         });
     }
 };
-exports.CloudinaryService = CloudinaryService;
-exports.CloudinaryService = CloudinaryService = __decorate([
-    (0, common_1.Injectable)(),
+CloudinaryService = __decorate([
+    Injectable(),
     __metadata("design:paramtypes", [])
 ], CloudinaryService);
+export { CloudinaryService };
 //# sourceMappingURL=cloudinary.service.js.map

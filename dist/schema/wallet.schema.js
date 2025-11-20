@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,45 +7,43 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.WalletSchema = exports.Wallet = void 0;
-const mongoose_1 = require("@nestjs/mongoose");
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 let Wallet = class Wallet {
     userId;
     balance;
     temporaryBalance;
     lockedBalance;
 };
-exports.Wallet = Wallet;
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         required: true
     }),
     __metadata("design:type", String)
 ], Wallet.prototype, "userId", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         default: 0,
         required: true
     }),
     __metadata("design:type", Number)
 ], Wallet.prototype, "balance", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         default: 0,
     }),
     __metadata("design:type", Number)
 ], Wallet.prototype, "temporaryBalance", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         default: 0
     }),
     __metadata("design:type", Number)
 ], Wallet.prototype, "lockedBalance", void 0);
-exports.Wallet = Wallet = __decorate([
-    (0, mongoose_1.Schema)({
+Wallet = __decorate([
+    Schema({
         timestamps: true
     })
 ], Wallet);
-exports.WalletSchema = mongoose_1.SchemaFactory.createForClass(Wallet);
+export { Wallet };
+export const WalletSchema = SchemaFactory.createForClass(Wallet);
 //# sourceMappingURL=wallet.schema.js.map

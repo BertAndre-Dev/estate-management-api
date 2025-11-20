@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,46 +7,44 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TransactionSchema = exports.Transaction = void 0;
-const mongoose_1 = require("@nestjs/mongoose");
-const mongoose_2 = require("mongoose");
-let Transaction = class Transaction extends mongoose_2.Document {
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
+let Transaction = class Transaction extends Document {
     meterNumber;
     amount;
     token;
     receiptNo;
     status;
 };
-exports.Transaction = Transaction;
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         required: true
     }),
     __metadata("design:type", String)
 ], Transaction.prototype, "meterNumber", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         required: true
     }),
     __metadata("design:type", Number)
 ], Transaction.prototype, "amount", void 0);
 __decorate([
-    (0, mongoose_1.Prop)(),
+    Prop(),
     __metadata("design:type", String)
 ], Transaction.prototype, "token", void 0);
 __decorate([
-    (0, mongoose_1.Prop)(),
+    Prop(),
     __metadata("design:type", String)
 ], Transaction.prototype, "receiptNo", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         default: 'pending'
     }),
     __metadata("design:type", String)
 ], Transaction.prototype, "status", void 0);
-exports.Transaction = Transaction = __decorate([
-    (0, mongoose_1.Schema)({ timestamps: true })
+Transaction = __decorate([
+    Schema({ timestamps: true })
 ], Transaction);
-exports.TransactionSchema = mongoose_1.SchemaFactory.createForClass(Transaction);
+export { Transaction };
+export const TransactionSchema = SchemaFactory.createForClass(Transaction);
 //# sourceMappingURL=transactions.schema.js.map

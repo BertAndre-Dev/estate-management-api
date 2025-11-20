@@ -58,41 +58,61 @@ export class IecCallbackController {
 
     // Handle MeterReadings payloads
     try {
-      // MeterReadings may be under payload['m:MeterReadings'] or payload.MeterReadings
-      const meterReadings = payload?.['m:MeterReadings'] || payload?.MeterReadings;
+      const meterReadings =
+        payload?.['m:MeterReadings'] ||
+        payload?.MeterReadings ||
+        reply?.['m:MeterReadings'] ||
+        reply?.MeterReadings;
+
       if (meterReadings) {
-        // normalize to array
-        const records = meterReadings['m:MeterReading'] || meterReadings.MeterReading || meterReadings;
+        const records =
+          meterReadings['m:MeterReading'] ||
+          meterReadings.MeterReading ||
+          meterReadings;
+
         const arr = Array.isArray(records) ? records : [records];
 
         for (const rec of arr) {
+          // ----------- Extract meter ID -----------
           const meterNode = rec?.Meter || rec?.['m:Meter'] || {};
+          const mRID =
+            meterNode?.['m:mRID'] ||
+            meterNode?.mRID ||
+            meterNode?.['@_mRID'];
+
+          // ----------- Extract reading info -----------
           const readingsNode = rec?.Readings || rec?.['m:Readings'] || {};
 
-          const mRID = meterNode?.['m:mRID'] || meterNode?.mRID || meterNode?.mRID || meterNode?.['@_mRID'];
-          // reading fields
-          const readingTypeNode = readingsNode?.ReadingType || readingsNode?.['m:ReadingType'];
+          const readingTypeNode =
+            readingsNode?.ReadingType ||
+            readingsNode?.['m:ReadingType'];
+
           const obis =
             readingTypeNode?.['@_ref'] ||
             readingTypeNode?.ref ||
-            readingTypeNode?.['@_ref'] ||
-            (readingTypeNode && typeof readingTypeNode === 'string' ? readingTypeNode : null);
+            (typeof readingTypeNode === 'string' ? readingTypeNode : null);
 
           const value =
-            Number(readingsNode?.value ?? readingsNode?.['m:value'] ?? readingsNode?.['m:value'] ?? NaN) ||
-            (readingsNode?.['m:value'] ?? readingsNode?.value);
+            readingsNode?.['m:value'] ||
+            readingsNode?.value ||
+            readingsNode?._value;
 
           const ts =
-            readingsNode?.timeStamp ||
-            readingsNode?.['m:timeStamp'] ||
             readingsNode?.['m:timeStamp'] ||
             readingsNode?.timeStamp ||
             new Date().toISOString();
 
+          // ----------- NEW: Use OBIS service to enrich ------------
+          const meta = this.obis.transformReading(obis, value);
+
+          // ----------- Save to DB -----------
           await this.readingModel.create({
             meterNumber: mRID,
-            obis,
-            value: isNaN(Number(value)) ? value : Number(value),
+            obis: meta.obis,
+            name: meta.name,
+            category: meta.category,
+            value: meta.value,
+            unit: meta.unit,
             timestamp: new Date(ts),
             source: 'HES',
             raw: readingsNode,
@@ -102,6 +122,7 @@ export class IecCallbackController {
     } catch (err) {
       this.logger.error('Error processing MeterReadings payload', err);
     }
+
 
     // You can add handling for EndDeviceControls reply, HistoryDataMeter payload, PageMeters, DetailsMeter, etc.
 

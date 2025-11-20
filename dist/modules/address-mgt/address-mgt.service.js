@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -11,15 +10,13 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AddressMgtService = void 0;
-const common_1 = require("@nestjs/common");
-const mongoose_1 = require("@nestjs/mongoose");
-const mongoose_2 = require("mongoose");
-const field_schema_1 = require("../../schema/address/field.schema");
-const transform_util_1 = require("../../common/utils/transform.util");
-const estate_schema_1 = require("../../schema/estate.schema");
-const entry_schema_1 = require("../../schema/address/entry.schema");
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Field } from "../../schema/address/field.schema";
+import { toResponseObject } from "../../common/utils/transform.util";
+import { Estate } from "../../schema/estate.schema";
+import { Entry } from "../../schema/address/entry.schema";
 let AddressMgtService = class AddressMgtService {
     fieldModel;
     estateModel;
@@ -32,14 +29,14 @@ let AddressMgtService = class AddressMgtService {
     async createAddressField(dto) {
         try {
             if (!dto.label?.trim()) {
-                throw new common_1.BadRequestException("Field label is required.");
+                throw new BadRequestException("Field label is required.");
             }
             if (!dto.estateId) {
-                throw new common_1.BadRequestException("Estate ID is required.");
+                throw new BadRequestException("Estate ID is required.");
             }
             const estateExists = await this.estateModel.exists({ _id: dto.estateId });
             if (!estateExists) {
-                throw new common_1.NotFoundException("Estate not found.");
+                throw new NotFoundException("Estate not found.");
             }
             const normalizedLabel = dto.label.trim().toLowerCase();
             const existingField = await this.fieldModel.findOne({
@@ -47,7 +44,7 @@ let AddressMgtService = class AddressMgtService {
                 label: new RegExp(`^${normalizedLabel}$`, "i"),
             });
             if (existingField) {
-                throw new common_1.BadRequestException(`The label "${dto.label}" already exists for this estate.`);
+                throw new BadRequestException(`The label "${dto.label}" already exists for this estate.`);
             }
             const newField = new this.fieldModel({
                 ...dto,
@@ -57,18 +54,18 @@ let AddressMgtService = class AddressMgtService {
             return {
                 success: true,
                 message: "Address field created successfully.",
-                data: (0, transform_util_1.toResponseObject)(savedField),
+                data: toResponseObject(savedField),
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async updateAddressFields(id, dto) {
         try {
             const field = await this.fieldModel.findById(id);
             if (!field) {
-                throw new common_1.NotFoundException("Address field not found.");
+                throw new NotFoundException("Address field not found.");
             }
             field.set({
                 ...dto
@@ -80,14 +77,14 @@ let AddressMgtService = class AddressMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async deleteAddressFields(id) {
         try {
             const field = await this.fieldModel.findByIdAndDelete(id);
             if (!field) {
-                throw new common_1.NotFoundException("Address field not found.");
+                throw new NotFoundException("Address field not found.");
             }
             await this.fieldModel.deleteMany({ id });
             return {
@@ -96,33 +93,33 @@ let AddressMgtService = class AddressMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getAddressField(id) {
         try {
             const field = await this.fieldModel.findById(id);
             if (!field) {
-                throw new common_1.NotFoundException("Address field not found.");
+                throw new NotFoundException("Address field not found.");
             }
             return {
                 success: true,
                 message: "Address field retrieved successfully.",
-                data: (0, transform_util_1.toResponseObject)(field)
+                data: toResponseObject(field)
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getAddressFieldsByEstate(estateId) {
         try {
             if (!estateId) {
-                throw new common_1.BadRequestException('Estate ID is required.');
+                throw new BadRequestException('Estate ID is required.');
             }
             const estateExists = await this.estateModel.exists({ _id: estateId });
             if (!estateExists) {
-                throw new common_1.NotFoundException('Estate not found.');
+                throw new NotFoundException('Estate not found.');
             }
             const fields = await this.fieldModel.find({ estateId });
             if (!fields || fields.length === 0) {
@@ -135,27 +132,27 @@ let AddressMgtService = class AddressMgtService {
             return {
                 success: true,
                 message: 'Address fields retrieved successfully.',
-                data: (0, transform_util_1.toResponseObject)(fields),
+                data: toResponseObject(fields),
             };
         }
         catch (error) {
-            if (error instanceof common_1.BadRequestException || error instanceof common_1.NotFoundException) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
                 throw error;
             }
-            throw new common_1.BadRequestException('Something went wrong retrieving address fields.');
+            throw new BadRequestException('Something went wrong retrieving address fields.');
         }
     }
     async createAddressEntry(dto) {
         try {
             const field = await this.fieldModel.findById(dto.fieldId);
             if (!field) {
-                throw new common_1.NotFoundException("Field not found.");
+                throw new NotFoundException("Field not found.");
             }
             if (!dto.data || typeof dto.data !== "object" || Array.isArray(dto.data)) {
-                throw new common_1.BadRequestException("Entry data must be a valid object.");
+                throw new BadRequestException("Entry data must be a valid object.");
             }
             if (!(field.key in dto.data)) {
-                throw new common_1.BadRequestException(`Missing required field key: ${field.key}`);
+                throw new BadRequestException(`Missing required field key: ${field.key}`);
             }
             const entry = new this.entryModel({
                 fieldId: dto.fieldId,
@@ -166,11 +163,11 @@ let AddressMgtService = class AddressMgtService {
             return {
                 success: true,
                 message: "Entry created successfully.",
-                data: (0, transform_util_1.toResponseObject)(savedEntry),
+                data: toResponseObject(savedEntry),
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async createAddressBulkEntries(dto) {
@@ -223,17 +220,17 @@ let AddressMgtService = class AddressMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async updateAddressEntry(id, dto) {
         try {
             const entry = await this.entryModel.findById(id);
             if (!entry) {
-                throw new common_1.NotFoundException("Entry does not exist.");
+                throw new NotFoundException("Entry does not exist.");
             }
             if (!dto.data || typeof dto.data !== 'object') {
-                throw new common_1.BadRequestException('Entry data is required and must be an object.');
+                throw new BadRequestException('Entry data is required and must be an object.');
             }
             entry.set({
                 ...dto,
@@ -245,14 +242,14 @@ let AddressMgtService = class AddressMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async deleteAddressEntry(id) {
         try {
             const entry = await this.entryModel.findByIdAndDelete(id);
             if (!entry) {
-                throw new common_1.NotFoundException("Entry does not exist.");
+                throw new NotFoundException("Entry does not exist.");
             }
             return {
                 success: true,
@@ -260,23 +257,23 @@ let AddressMgtService = class AddressMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getAddressEntry(id) {
         try {
             const entry = await this.entryModel.findById(id);
             if (!entry) {
-                throw new common_1.NotFoundException("Entry not found.");
+                throw new NotFoundException("Entry not found.");
             }
             return {
                 success: true,
                 message: "Entry retrieved successfully.",
-                data: (0, transform_util_1.toResponseObject)(entry)
+                data: toResponseObject(entry)
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getAllEstateAddressEntries(fieldId, page, limit) {
@@ -296,7 +293,7 @@ let AddressMgtService = class AddressMgtService {
             return {
                 success: true,
                 message: "Field entries retrieved successfully.",
-                data: (0, transform_util_1.toResponseObject)(response),
+                data: toResponseObject(response),
                 pagination: {
                     total,
                     page,
@@ -306,13 +303,13 @@ let AddressMgtService = class AddressMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getAddressEntryStats(fieldId) {
         try {
             if (!fieldId)
-                throw new common_1.BadRequestException("Field ID is required");
+                throw new BadRequestException("Field ID is required");
             const entries = await this.entryModel.find({ fieldId });
             if (!entries.length) {
                 return {
@@ -347,18 +344,18 @@ let AddressMgtService = class AddressMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
 };
-exports.AddressMgtService = AddressMgtService;
-exports.AddressMgtService = AddressMgtService = __decorate([
-    (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(field_schema_1.Field.name)),
-    __param(1, (0, mongoose_1.InjectModel)(estate_schema_1.Estate.name)),
-    __param(2, (0, mongoose_1.InjectModel)(entry_schema_1.Entry.name)),
-    __metadata("design:paramtypes", [mongoose_2.Model,
-        mongoose_2.Model,
-        mongoose_2.Model])
+AddressMgtService = __decorate([
+    Injectable(),
+    __param(0, InjectModel(Field.name)),
+    __param(1, InjectModel(Estate.name)),
+    __param(2, InjectModel(Entry.name)),
+    __metadata("design:paramtypes", [Model,
+        Model,
+        Model])
 ], AddressMgtService);
+export { AddressMgtService };
 //# sourceMappingURL=address-mgt.service.js.map

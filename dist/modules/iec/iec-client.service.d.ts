@@ -8,7 +8,7 @@ export declare class IecClientService {
     private hesTokenFetchedAt;
     private TOKEN_TTL;
     constructor(pendingModel: Model<PendingRequestDocument>);
-    private getToken;
+    getToken(): Promise<string>;
     private resolveVerb;
     private postRequest;
     disconnectMeter(meterNumber: string): Promise<{
@@ -44,6 +44,14 @@ export declare class IecClientService {
         status: number;
     }>;
     pageMeters(): Promise<{
+        noun: string;
+        messageId: string;
+        correlationId: string;
+        ack: null;
+        raw: any;
+        status: number;
+    }>;
+    sendToken(meterNumber: string, tokenValue: string): Promise<{
         noun: string;
         messageId: string;
         correlationId: string;

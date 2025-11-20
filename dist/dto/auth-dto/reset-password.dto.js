@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,38 +7,35 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ResetPasswordDto = void 0;
-const swagger_1 = require("@nestjs/swagger");
-const class_validator_1 = require("class-validator");
-class ResetPasswordDto {
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsString, MinLength, MaxLength, Matches, IsNotEmpty } from 'class-validator';
+export class ResetPasswordDto {
     email;
     resetToken;
     newPassword;
 }
-exports.ResetPasswordDto = ResetPasswordDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'user@email.com' }),
-    (0, class_validator_1.IsEmail)(),
-    (0, class_validator_1.IsNotEmpty)(),
+    ApiProperty({ example: 'user@email.com' }),
+    IsEmail(),
+    IsNotEmpty(),
     __metadata("design:type", String)
 ], ResetPasswordDto.prototype, "email", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: '123456' }),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
+    ApiProperty({ example: '123456' }),
+    IsString(),
+    IsNotEmpty(),
     __metadata("design:type", String)
 ], ResetPasswordDto.prototype, "resetToken", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({
+    ApiProperty({
         example: 'password123',
         description: 'Password for the user account',
     }),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MinLength)(8, { message: "Password too short, it should be a minimum of 8 characters." }),
-    (0, class_validator_1.MaxLength)(15, { message: "Password too long, it should be a maximum of 15 characters." }),
-    (0, class_validator_1.Matches)(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/, {
+    IsString(),
+    IsNotEmpty(),
+    MinLength(8, { message: "Password too short, it should be a minimum of 8 characters." }),
+    MaxLength(15, { message: "Password too long, it should be a maximum of 15 characters." }),
+    Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/, {
         message: 'Password too weak',
     }),
     __metadata("design:type", String)

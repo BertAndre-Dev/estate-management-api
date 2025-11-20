@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,21 +7,18 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateBulkEntryDto = void 0;
-const swagger_1 = require("@nestjs/swagger");
-const class_transformer_1 = require("class-transformer");
-const class_validator_1 = require("class-validator");
-const entry_dto_1 = require("./entry.dto");
-class CreateBulkEntryDto {
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { ValidateNested, ArrayNotEmpty } from 'class-validator';
+import { CreateEntryDto } from './entry.dto';
+export class CreateBulkEntryDto {
     entries;
 }
-exports.CreateBulkEntryDto = CreateBulkEntryDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ type: [entry_dto_1.CreateEntryDto] }),
-    (0, class_validator_1.ValidateNested)({ each: true }),
-    (0, class_transformer_1.Type)(() => entry_dto_1.CreateEntryDto),
-    (0, class_validator_1.ArrayNotEmpty)(),
+    ApiProperty({ type: [CreateEntryDto] }),
+    ValidateNested({ each: true }),
+    Type(() => CreateEntryDto),
+    ArrayNotEmpty(),
     __metadata("design:type", Array)
 ], CreateBulkEntryDto.prototype, "entries", void 0);
 //# sourceMappingURL=bulk-entry.dto.js.map

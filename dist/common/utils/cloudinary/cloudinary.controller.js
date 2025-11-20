@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -11,10 +10,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CloudinaryController = void 0;
-const common_1 = require("@nestjs/common");
-const cloudinary_service_1 = require("./cloudinary.service");
+import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { CloudinaryService } from './cloudinary.service';
 let CloudinaryController = class CloudinaryController {
     cloudinaryService;
     constructor(cloudinaryService) {
@@ -22,7 +19,7 @@ let CloudinaryController = class CloudinaryController {
     }
     async uploadImage(base64File) {
         if (!base64File || !base64File.startsWith('data:image/')) {
-            throw new common_1.BadRequestException('Invalid image format. Please provide a base64-encoded image.');
+            throw new BadRequestException('Invalid image format. Please provide a base64-encoded image.');
         }
         try {
             const publicId = `user_profile/${Date.now()}`;
@@ -38,20 +35,20 @@ let CloudinaryController = class CloudinaryController {
         }
         catch (error) {
             console.error('Error uploading image:', error);
-            throw new common_1.BadRequestException('Failed to upload image to Cloudinary.');
+            throw new BadRequestException('Failed to upload image to Cloudinary.');
         }
     }
 };
-exports.CloudinaryController = CloudinaryController;
 __decorate([
-    (0, common_1.Post)('upload'),
-    __param(0, (0, common_1.Body)('base64File')),
+    Post('upload'),
+    __param(0, Body('base64File')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], CloudinaryController.prototype, "uploadImage", null);
-exports.CloudinaryController = CloudinaryController = __decorate([
-    (0, common_1.Controller)('api/v1/cloudinary'),
-    __metadata("design:paramtypes", [cloudinary_service_1.CloudinaryService])
+CloudinaryController = __decorate([
+    Controller('api/v1/cloudinary'),
+    __metadata("design:paramtypes", [CloudinaryService])
 ], CloudinaryController);
+export { CloudinaryController };
 //# sourceMappingURL=cloudinary.controller.js.map

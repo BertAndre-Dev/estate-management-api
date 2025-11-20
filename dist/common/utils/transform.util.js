@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.toResponseObject = toResponseObject;
-const mongoose_1 = require("mongoose");
-function toResponseObject(doc) {
+import { Types } from 'mongoose';
+export function toResponseObject(doc) {
     if (Array.isArray(doc)) {
         return doc.map(toResponseObject);
     }
@@ -10,7 +7,7 @@ function toResponseObject(doc) {
         if (doc instanceof Date) {
             return doc.toISOString();
         }
-        if (mongoose_1.Types.ObjectId.isValid(doc) && doc.constructor.name === 'ObjectId') {
+        if (Types.ObjectId.isValid(doc) && doc.constructor.name === 'ObjectId') {
             return doc.toString();
         }
         if (Buffer.isBuffer(doc)) {

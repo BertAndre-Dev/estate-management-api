@@ -4,6 +4,7 @@ import { DisconnectMeterDto } from '../../dto/iec-dto/disconnect-meter.dto';
 import { ReconnectMeterDto } from '../../dto/iec-dto/reconnect-meter.dto';
 import { HistoryDataDto } from '../../dto/iec-dto/history-data.dto';
 import { DetailsMeterDto } from '../../dto/iec-dto/details-meter.dto';
+import { SendTokenDto } from 'src/dto/iec-dto/send-token.dto';
 export declare class IecController {
     private readonly iecClient;
     constructor(iecClient: IecClientService);
@@ -48,6 +49,14 @@ export declare class IecController {
         status: number;
     }>;
     details(dto: DetailsMeterDto): Promise<{
+        noun: string;
+        messageId: string;
+        correlationId: string;
+        ack: null;
+        raw: any;
+        status: number;
+    }>;
+    sendToken(dto: SendTokenDto): Promise<{
         noun: string;
         messageId: string;
         correlationId: string;

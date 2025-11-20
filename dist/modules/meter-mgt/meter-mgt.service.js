@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -12,53 +11,88 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var MeterMgtService_1;
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.MeterMgtService = void 0;
-const common_1 = require("@nestjs/common");
-const axios_1 = require("@nestjs/axios");
-const rxjs_1 = require("rxjs");
-const mongoose_1 = require("@nestjs/mongoose");
-const mongoose_2 = require("mongoose");
-const meter_reading_schema_1 = require("../../schema/meter-mgt/meter-reading.schema");
-const meter_schema_1 = require("../../schema/meter-mgt/meter.schema");
-const transform_util_1 = require("../../common/utils/transform.util");
-const signature_utils_1 = require("../../common/utils/signature.utils");
-const uuid_1 = require("uuid");
-const transaction_mgt_service_1 = require("../transaction-mgt/transaction-mgt.service");
-const wallet_schema_1 = require("../../schema/wallet.schema");
-const transaction_schema_1 = require("../../schema/transaction.schema");
-const entry_schema_1 = require("../../schema/address/entry.schema");
-const iec_client_service_1 = require("../iec/iec-client.service");
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { MeterReading } from "../../schema/meter-mgt/meter-reading.schema";
+import { Meter } from "../../schema/meter-mgt/meter.schema";
+import { toResponseObject } from "../../common/utils/transform.util";
+import { SignatureUtil } from "../../common/utils/signature.utils";
+import { v4 as uuid } from 'uuid';
+import { TransactionMgtService } from '../transaction-mgt/transaction-mgt.service';
+import { Wallet } from "../../schema/wallet.schema";
+import { Transaction } from "../../schema/transaction.schema";
+import { Entry } from "../../schema/address/entry.schema";
+import { IecClientService } from '../iec/iec-client.service';
+import { RealtimeGateway } from "../../common/utils/real-time/real-time.gateway";
 let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
     http;
     transaction;
     ice;
+    gateway;
     meterReadingModel;
     meterModel;
     walletModel;
     transactionModel;
     entryModel;
     baseUrl = process.env.STS_API_URL;
-    logger = new common_1.Logger(MeterMgtService_1.name);
-    constructor(http, transaction, ice, meterReadingModel, meterModel, walletModel, transactionModel, entryModel) {
+    logger = new Logger(MeterMgtService_1.name);
+    constructor(http, transaction, ice, gateway, meterReadingModel, meterModel, walletModel, transactionModel, entryModel) {
         this.http = http;
         this.transaction = transaction;
         this.ice = ice;
+        this.gateway = gateway;
         this.meterReadingModel = meterReadingModel;
         this.meterModel = meterModel;
         this.walletModel = walletModel;
         this.transactionModel = transactionModel;
         this.entryModel = entryModel;
     }
+    async monitorMeters() {
+        const meters = await this.meterModel.find();
+        for (const meter of meters) {
+            try {
+                const energyObis = meter.supportedDataTypes?.find((x) => String(x.dTypeName).toLowerCase().includes("import active energy"));
+                if (!energyObis)
+                    continue;
+                const reading = await this.ice.getMeterReadings(meter.meterNumber, energyObis.dTypeID);
+                const energyNow = Number(reading?.parsed?.value ?? 0);
+                const last = meter.lastReading ?? null;
+                let consumption = last ? energyNow - (last.energy ?? 0) : 0;
+                let balance = Number(meter.lastTokenKwh ?? 0) - energyNow;
+                if (balance < 0)
+                    balance = 0;
+                meter.lastReading = {
+                    timestamp: new Date().toISOString(),
+                    energy: energyNow,
+                    consumption,
+                };
+                meter.balance = balance;
+                await meter.save();
+                this.gateway.broadcastMeterUpdate?.({
+                    meterNumber: meter.meterNumber,
+                    energy: energyNow,
+                    consumption,
+                    balance,
+                });
+            }
+            catch (e) {
+                this.logger.error(`Realtime error for meter ${meter.meterNumber}`, e);
+            }
+        }
+    }
     async addMeter(dto) {
         try {
             const lookupMeter = await this.lookupMeterFromMerchant(dto.meterNumber);
             if (!lookupMeter || lookupMeter.state !== 0) {
-                throw new common_1.NotFoundException("Meter not on the merchant system");
+                throw new NotFoundException("Meter not on the merchant system");
             }
             const existingMeter = await this.meterModel.findOne({ meterNumber: dto.meterNumber });
             if (existingMeter) {
-                throw new common_1.BadRequestException("Meter already existing on the DB.");
+                throw new BadRequestException("Meter already existing on the DB.");
             }
             const meter = await this.meterModel.create({
                 meterNumber: dto.meterNumber,
@@ -70,11 +104,11 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             return {
                 success: true,
                 message: "Meter added successfully.",
-                data: (0, transform_util_1.toResponseObject)(meter)
+                data: toResponseObject(meter)
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     ;
@@ -82,21 +116,21 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
         try {
             const meter = await this.meterModel.findOne({ meterNumber: dto.meterNumber });
             if (!meter) {
-                throw new common_1.NotFoundException("Meter not found.");
+                throw new NotFoundException("Meter not found.");
             }
             if (meter.isAssigned) {
-                throw new common_1.BadRequestException("Meter is assigned to an address. Unassign it before removing.");
+                throw new BadRequestException("Meter is assigned to an address. Unassign it before removing.");
             }
             meter.estateId = null;
             await meter.save();
             return {
                 success: true,
                 message: "Meter removed from estate successfully.",
-                data: (0, transform_util_1.toResponseObject)(meter),
+                data: toResponseObject(meter),
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     ;
@@ -104,10 +138,10 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
         try {
             const meter = await this.meterModel.findOne({ meterNumber: dto.meterNumber });
             if (!meter) {
-                throw new common_1.NotFoundException("Meter not found.");
+                throw new NotFoundException("Meter not found.");
             }
             if (meter.isAssigned) {
-                throw new common_1.BadRequestException("Meter is currently assigned to an address. Unassign it first.");
+                throw new BadRequestException("Meter is currently assigned to an address. Unassign it first.");
             }
             meter.estateId = dto.newEstateId;
             meter.isAssigned = true;
@@ -115,24 +149,24 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             return {
                 success: true,
                 message: "Meter successfully reassigned to new estate.",
-                data: (0, transform_util_1.toResponseObject)(meter)
+                data: toResponseObject(meter)
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async assignMeterToAddress(dto) {
         try {
             if (!dto.addressId) {
-                throw new common_1.BadRequestException("addressId is required to assign meter.");
+                throw new BadRequestException("addressId is required to assign meter.");
             }
             const meter = await this.meterModel.findOne({ meterNumber: dto.meterNumber });
             if (!meter) {
-                throw new common_1.NotFoundException("Meter not found.");
+                throw new NotFoundException("Meter not found.");
             }
             if (meter.isAssigned) {
-                throw new common_1.BadRequestException("Meter has already been assigned.");
+                throw new BadRequestException("Meter has already been assigned.");
             }
             meter.addressId = dto.addressId;
             meter.isAssigned = true;
@@ -140,22 +174,22 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             return {
                 success: true,
                 message: "Meter assigned to address successfully.",
-                data: (0, transform_util_1.toResponseObject)(meter)
+                data: toResponseObject(meter)
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getMeterByAddress(addressId) {
         try {
             const address = await this.entryModel.findById(addressId);
             if (!address) {
-                throw new common_1.NotFoundException('Address does not exist.');
+                throw new NotFoundException('Address does not exist.');
             }
             const meter = await this.meterModel.findOne({ addressId });
             if (!meter) {
-                throw new common_1.NotFoundException('No meter is assigned to this address.');
+                throw new NotFoundException('No meter is assigned to this address.');
             }
             const enrichedMeter = await this.enrichMeterWithVendorData(meter);
             return {
@@ -165,14 +199,14 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message || 'Failed to fetch meter by address.');
+            throw new BadRequestException(error.message || 'Failed to fetch meter by address.');
         }
     }
     async updateMeter(id, dto) {
         try {
             const meter = await this.meterModel.findById(id);
             if (!meter) {
-                throw new common_1.NotFoundException('Meter not found.');
+                throw new NotFoundException('Meter not found.');
             }
             Object.assign(meter, dto);
             try {
@@ -180,7 +214,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
                 await this.updateMeterOnVendor(meter.meterNumber, dto, token);
             }
             catch (error) {
-                throw new common_1.BadRequestException(error.message);
+                throw new BadRequestException(error.message);
             }
             await meter.save();
             return {
@@ -189,14 +223,14 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async trialVend(dto) {
         try {
             const wallet = await this.walletModel.findById(dto.walletId);
             if (!wallet) {
-                throw new common_1.BadRequestException('Wallet not found.');
+                throw new BadRequestException('Wallet not found.');
             }
             await this.transaction.createTransaction({
                 walletId: dto.walletId,
@@ -207,9 +241,9 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             });
             const token = await this.getVendorAuthToken();
             const seed = Math.floor(Math.random() * 1e16).toString().padStart(16, '0');
-            const transId = (0, uuid_1.v4)().replace(/-/g, '').slice(0, 16);
+            const transId = uuid().replace(/-/g, '').slice(0, 16);
             const { STS_CLIENT_ID, STS_TERMINAL_ID, STS_USER, STS_PASS, STS_KEY } = process.env;
-            const derivedKey = signature_utils_1.SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
+            const derivedKey = SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
             const payload = {
                 version: 1,
                 clientId: STS_CLIENT_ID,
@@ -224,13 +258,13 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
                 payType: '85',
                 amountType: 0,
             };
-            const sign = signature_utils_1.SignatureUtil.generateSignature(payload, derivedKey);
+            const sign = SignatureUtil.generateSignature(payload, derivedKey);
             const body = { ...payload, sign, signType: 'MD5' };
-            const { data } = await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/trialCreditVend`, body, { headers: { "Content-Type": "application/json" } }));
+            const { data } = await firstValueFrom(this.http.post(`${this.baseUrl}/trialCreditVend`, body, { headers: { "Content-Type": "application/json" } }));
             if (!data || data.state !== 0) {
                 const wallet = await this.walletModel.findById(dto.walletId);
                 if (!wallet) {
-                    throw new common_1.BadRequestException('Wallet not found.');
+                    throw new BadRequestException('Wallet not found.');
                 }
                 await this.transaction.createTransaction({
                     walletId: dto.walletId,
@@ -239,7 +273,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
                     amount: dto.amount,
                     description: `Trial vend for meter ${dto.meterNumber}`,
                 });
-                throw new common_1.BadRequestException(data?.message || 'Trial vend failed.');
+                throw new BadRequestException(data?.message || 'Trial vend failed.');
             }
             return {
                 success: true,
@@ -249,7 +283,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async vend(dto, transId) {
@@ -257,7 +291,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             const token = await this.getVendorAuthToken();
             const seed = String(Date.now()).padStart(16, '0');
             const { STS_CLIENT_ID, STS_TERMINAL_ID, STS_USER, STS_PASS, STS_KEY } = process.env;
-            const derivedKey = signature_utils_1.SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
+            const derivedKey = SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
             const payload = {
                 version: "1",
                 clientId: STS_CLIENT_ID,
@@ -272,12 +306,18 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
                 payType: '85',
                 amountType: 0,
             };
-            const sign = signature_utils_1.SignatureUtil.generateSignature(payload, derivedKey).toUpperCase();
+            const sign = SignatureUtil.generateSignature(payload, derivedKey).toUpperCase();
             const body = { ...payload, sign, signType: 'MD5' };
-            const { data } = await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/creditVend`, body));
+            const { data } = await firstValueFrom(this.http.post(`${this.baseUrl}/creditVend`, body));
             if (data.state !== 0) {
-                throw new common_1.BadRequestException(data.message || 'Vend failed.');
+                throw new BadRequestException(data.message || 'Vend failed.');
             }
+            await this.meterReadingModel.create({
+                meterNumber: dto.meterNumber,
+                receivedToken: data.energyList?.[0]?.token ?? null,
+                amount: dto.amount,
+                transId,
+            });
             return {
                 success: true,
                 message: 'Vend successful.',
@@ -285,7 +325,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async disconnectMeter(dto) {
@@ -293,7 +333,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             const response = await this.ice.disconnectMeter(dto.meterNumber);
             const reply = response?.ack?.ResponseMessage?.Reply;
             if (!reply || reply.Result !== 'OK' || reply.Error?.code !== '0.0') {
-                throw new common_1.NotFoundException(`Meter ${dto.meterNumber} could not be disconnected.`);
+                throw new NotFoundException(`Meter ${dto.meterNumber} could not be disconnected.`);
             }
             return {
                 message: `Meter ${dto.meterNumber} disconnected successfully.`,
@@ -313,7 +353,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             const response = await this.ice.reconnectMeter(dto.meterNumber);
             const reply = response?.ack?.ResponseMessage?.Reply;
             if (!reply || reply.Result !== 'OK' || reply.Error?.code !== '0.0') {
-                throw new common_1.NotFoundException(`Meter ${dto.meterNumber} could not be reconnected.`);
+                throw new NotFoundException(`Meter ${dto.meterNumber} could not be reconnected.`);
             }
             return {
                 message: `Meter ${dto.meterNumber} reconnected successfully.`,
@@ -332,7 +372,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             const token = await this.getVendorAuthToken();
             const seed = Math.floor(Math.random() * 1e16).toString().padStart(16, '0');
             const { STS_CLIENT_ID, STS_TERMINAL_ID, STS_USER, STS_PASS, STS_KEY } = process.env;
-            const derivedKey = signature_utils_1.SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
+            const derivedKey = SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
             const payload = {
                 version: 1,
                 clientId: STS_CLIENT_ID,
@@ -343,10 +383,10 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
                 seed,
                 value: meterNumber,
             };
-            const sign = signature_utils_1.SignatureUtil.generateSignature(payload, derivedKey);
+            const sign = SignatureUtil.generateSignature(payload, derivedKey);
             const body = { ...payload, sign, signType: "MD5" };
             this.logger.debug("🧾 CustomerDetails Payload:", JSON.stringify(body, null, 2));
-            const { data } = await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/customerDetails`, body, {
+            const { data } = await firstValueFrom(this.http.post(`${this.baseUrl}/customerDetails`, body, {
                 headers: {
                     Accept: "application/json",
                     "Content-Type": "application/json",
@@ -354,20 +394,20 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             }));
             this.logger.debug("📩 CustomerDetails Response:", data);
             if (!data || data.state !== 0) {
-                throw new common_1.BadRequestException(data?.message || "Meter lookup failed.");
+                throw new BadRequestException(data?.message || "Meter lookup failed.");
             }
             return data;
         }
         catch (error) {
             this.logger.error("❌ lookupMeterFromMerchant Error:", error);
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async enrichMeterWithVendorData(meter) {
         try {
             const vendorData = await this.lookupMeterFromMerchant(meter.meterNumber);
             return {
-                ...(0, transform_util_1.toResponseObject)(meter),
+                ...toResponseObject(meter),
                 vendorData: {
                     name: vendorData.name,
                     device: vendorData.device,
@@ -384,7 +424,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
         }
         catch {
             return {
-                ...(0, transform_util_1.toResponseObject)(meter),
+                ...toResponseObject(meter),
                 vendorData: null,
             };
         }
@@ -397,7 +437,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
                 this.meterModel.countDocuments({ estateId }),
             ]);
             if (!meters.length) {
-                throw new common_1.NotFoundException('No meters found for this estate.');
+                throw new NotFoundException('No meters found for this estate.');
             }
             const enrichedMeters = await Promise.all(meters.map((meter) => this.enrichMeterWithVendorData(meter)));
             return {
@@ -413,14 +453,14 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message || 'Failed to fetch meters by estate.');
+            throw new BadRequestException(error.message || 'Failed to fetch meters by estate.');
         }
     }
     async getMeter(id) {
         try {
             const meter = await this.meterModel.findById(id);
             if (!meter) {
-                throw new common_1.NotFoundException('Meter not found');
+                throw new NotFoundException('Meter not found');
             }
             const enriched = await this.enrichMeterWithVendorData(meter);
             return {
@@ -430,7 +470,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getVendorAuthToken() {
@@ -446,12 +486,12 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             user: STS_USER,
             seed,
         };
-        const key = signature_utils_1.SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
-        const sign = signature_utils_1.SignatureUtil.generateSignature(payload, key);
+        const key = SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
+        const sign = SignatureUtil.generateSignature(payload, key);
         const body = { ...payload, sign, signType: 'MD5' };
         this.logger.debug('🧾 Auth Payload JSON:', JSON.stringify(body, null, 2));
         this.logger.debug(`🌍 API Endpoint: ${this.baseUrl}/authToken`);
-        const { data, status } = await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/authToken`, body, {
+        const { data, status } = await firstValueFrom(this.http.post(`${this.baseUrl}/authToken`, body, {
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             validateStatus: () => true,
         }));
@@ -460,7 +500,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
         this.logger.debug('Body:', data);
         this.logger.debug('=================================================');
         if (!data || data.state !== 0) {
-            throw new common_1.BadRequestException(`Vendor auth failed: ${data?.message || 'Unknown error'}`);
+            throw new BadRequestException(`Vendor auth failed: ${data?.message || 'Unknown error'}`);
         }
         this.logger.log('✅ Vendor Auth Success — Token:', data.tokenValue);
         return data.tokenValue;
@@ -468,7 +508,7 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
     async verifyMeterWithVendor(meterNumber, token) {
         const seed = String(Date.now()).padStart(16, '0');
         const { STS_CLIENT_ID, STS_TERMINAL_ID, STS_USER, STS_PASS, STS_KEY } = process.env;
-        const derivedKey = signature_utils_1.SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
+        const derivedKey = SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
         const payload = {
             version: "1",
             clientId: STS_CLIENT_ID,
@@ -479,15 +519,15 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             device: meterNumber,
             seed,
         };
-        const sign = signature_utils_1.SignatureUtil.generateSignature(payload, derivedKey).toUpperCase();
+        const sign = SignatureUtil.generateSignature(payload, derivedKey).toUpperCase();
         const body = { ...payload, sign, signType: 'MD5' };
-        const { data } = await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/customerDetails`, body));
+        const { data } = await firstValueFrom(this.http.post(`${this.baseUrl}/customerDetails`, body));
         return data.state === 0 ? data : null;
     }
     async registerMeterWithVendor(dto, token) {
         const seed = String(Date.now()).padStart(16, '0');
         const { STS_CLIENT_ID, STS_TERMINAL_ID, STS_USER, STS_PASS, STS_KEY } = process.env;
-        const derivedKey = signature_utils_1.SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
+        const derivedKey = SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
         const payload = {
             version: "1",
             clientId: STS_CLIENT_ID,
@@ -500,18 +540,18 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             customerAddress: dto.addressId ?? 'Unknown',
             seed,
         };
-        const sign = signature_utils_1.SignatureUtil.generateSignature(payload, derivedKey).toUpperCase();
+        const sign = SignatureUtil.generateSignature(payload, derivedKey).toUpperCase();
         const body = { ...payload, sign, signType: 'MD5' };
-        const { data } = await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/addCustomer`, body));
+        const { data } = await firstValueFrom(this.http.post(`${this.baseUrl}/addCustomer`, body));
         if (data.state !== 0) {
-            throw new common_1.BadRequestException(`Vendor registration failed: ${data.message}`);
+            throw new BadRequestException(`Vendor registration failed: ${data.message}`);
         }
         return data;
     }
     async updateMeterOnVendor(meterNumber, dto, token) {
         const seed = String(Date.now()).padStart(16, '0');
         const { STS_CLIENT_ID, STS_TERMINAL_ID, STS_USER, STS_PASS, STS_KEY } = process.env;
-        const derivedKey = signature_utils_1.SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
+        const derivedKey = SignatureUtil.deriveKey(STS_USER, STS_PASS, STS_KEY, seed);
         const payload = {
             version: "1",
             clientId: STS_CLIENT_ID,
@@ -524,11 +564,11 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
             customerAddress: dto.addressId ?? 'N/A',
             seed,
         };
-        const sign = signature_utils_1.SignatureUtil.generateSignature(payload, derivedKey).toUpperCase();
+        const sign = SignatureUtil.generateSignature(payload, derivedKey).toUpperCase();
         const body = { ...payload, sign, signType: 'MD5' };
-        const { data } = await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/updateCustomer`, body));
+        const { data } = await firstValueFrom(this.http.post(`${this.baseUrl}/updateCustomer`, body));
         if (data.state !== 0) {
-            throw new common_1.BadRequestException(`Vendor update failed: ${data.message}`);
+            throw new BadRequestException(`Vendor update failed: ${data.message}`);
         }
         return data;
     }
@@ -543,21 +583,28 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
         return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
 };
-exports.MeterMgtService = MeterMgtService;
-exports.MeterMgtService = MeterMgtService = MeterMgtService_1 = __decorate([
-    (0, common_1.Injectable)(),
-    __param(3, (0, mongoose_1.InjectModel)(meter_reading_schema_1.MeterReading.name)),
-    __param(4, (0, mongoose_1.InjectModel)(meter_schema_1.Meter.name)),
-    __param(5, (0, mongoose_1.InjectModel)(wallet_schema_1.Wallet.name)),
-    __param(6, (0, mongoose_1.InjectModel)(transaction_schema_1.Transaction.name)),
-    __param(7, (0, mongoose_1.InjectModel)(entry_schema_1.Entry.name)),
-    __metadata("design:paramtypes", [axios_1.HttpService,
-        transaction_mgt_service_1.TransactionMgtService,
-        iec_client_service_1.IecClientService,
-        mongoose_2.Model,
-        mongoose_2.Model,
-        mongoose_2.Model,
-        mongoose_2.Model,
-        mongoose_2.Model])
+__decorate([
+    Cron("*/30 * * * * *"),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], MeterMgtService.prototype, "monitorMeters", null);
+MeterMgtService = MeterMgtService_1 = __decorate([
+    Injectable(),
+    __param(4, InjectModel(MeterReading.name)),
+    __param(5, InjectModel(Meter.name)),
+    __param(6, InjectModel(Wallet.name)),
+    __param(7, InjectModel(Transaction.name)),
+    __param(8, InjectModel(Entry.name)),
+    __metadata("design:paramtypes", [HttpService,
+        TransactionMgtService,
+        IecClientService,
+        RealtimeGateway,
+        Model,
+        Model,
+        Model,
+        Model,
+        Model])
 ], MeterMgtService);
+export { MeterMgtService };
 //# sourceMappingURL=meter-mgt.service.js.map

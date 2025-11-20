@@ -7,6 +7,7 @@ import { DisconnectMeterDto } from '../../dto/iec-dto/disconnect-meter.dto';
 import { ReconnectMeterDto } from '../../dto/iec-dto/reconnect-meter.dto';
 import { HistoryDataDto } from '../../dto/iec-dto/history-data.dto';
 import { DetailsMeterDto } from '../../dto/iec-dto/details-meter.dto';
+import { SendTokenDto } from 'src/dto/iec-dto/send-token.dto';
 
 
 @ApiTags('IEC Smart Metering')
@@ -68,5 +69,13 @@ export class IecController {
     @Post('meter/details')
     async details(@Body() dto: DetailsMeterDto) {
         return this.iecClient.detailsMeter(dto.meterNumber);
+    }
+
+
+    // -------------------------------------------------------------------
+    @ApiOperation({ summary: 'Send STS Token to smart meter (via HES)' })
+    @Post('meter/send-token')
+    async sendToken(@Body() dto: SendTokenDto) {
+        return this.iecClient.sendToken(dto.meterNumber, dto.token);
     }
 }

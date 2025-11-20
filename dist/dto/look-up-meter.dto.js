@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,17 +7,14 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.LookupMeterDto = void 0;
-const swagger_1 = require("@nestjs/swagger");
-const class_validator_1 = require("class-validator");
-class LookupMeterDto {
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString } from 'class-validator';
+export class LookupMeterDto {
     meterNumber;
 }
-exports.LookupMeterDto = LookupMeterDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: '0291100000012', description: 'Meter number to lookup on merchant server' }),
-    (0, class_validator_1.IsString)(),
+    ApiProperty({ example: '0291100000012', description: 'Meter number to lookup on merchant server' }),
+    IsString(),
     __metadata("design:type", String)
 ], LookupMeterDto.prototype, "meterNumber", void 0);
 //# sourceMappingURL=look-up-meter.dto.js.map

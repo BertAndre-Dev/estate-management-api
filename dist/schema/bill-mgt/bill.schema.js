@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,9 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BillSchema = exports.Bill = void 0;
-const mongoose_1 = require("@nestjs/mongoose");
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 let Bill = class Bill {
     estateId;
     name;
@@ -19,47 +16,47 @@ let Bill = class Bill {
     isActive;
     isServiceCharge;
 };
-exports.Bill = Bill;
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         required: true
     }),
     __metadata("design:type", String)
 ], Bill.prototype, "estateId", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         required: true
     }),
     __metadata("design:type", String)
 ], Bill.prototype, "name", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         required: true
     }),
     __metadata("design:type", String)
 ], Bill.prototype, "description", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         required: true
     }),
     __metadata("design:type", Number)
 ], Bill.prototype, "yearlyAmount", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         default: true
     }),
     __metadata("design:type", Boolean)
 ], Bill.prototype, "isActive", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
+    Prop({
         default: true
     }),
     __metadata("design:type", Boolean)
 ], Bill.prototype, "isServiceCharge", void 0);
-exports.Bill = Bill = __decorate([
-    (0, mongoose_1.Schema)({
+Bill = __decorate([
+    Schema({
         timestamps: true
     })
 ], Bill);
-exports.BillSchema = mongoose_1.SchemaFactory.createForClass(Bill);
+export { Bill };
+export const BillSchema = SchemaFactory.createForClass(Bill);
 //# sourceMappingURL=bill.schema.js.map

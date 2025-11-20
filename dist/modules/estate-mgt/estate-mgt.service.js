@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -11,14 +10,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EstateMgtService = void 0;
-const common_1 = require("@nestjs/common");
-const mongoose_1 = require("@nestjs/mongoose");
-const mongoose_2 = require("mongoose");
-const transform_util_1 = require("../../common/utils/transform.util");
-const estate_schema_1 = require("../../schema/estate.schema");
-const user_schema_1 = require("../../schema/user.schema");
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { toResponseObject } from "../../common/utils/transform.util";
+import { Estate } from "../../schema/estate.schema";
+import { User } from "../../schema/user.schema";
 let EstateMgtService = class EstateMgtService {
     estateModel;
     userModel;
@@ -29,14 +26,14 @@ let EstateMgtService = class EstateMgtService {
     async createEstate(dto) {
         try {
             if (!dto?.name?.trim()) {
-                throw new common_1.BadRequestException('Estate name is required.');
+                throw new BadRequestException('Estate name is required.');
             }
             const normalizedName = dto.name.trim().toLowerCase();
             const existingEstate = await this.estateModel.findOne({
                 name: new RegExp(`^${normalizedName}$`, 'i'),
             });
             if (existingEstate) {
-                throw new common_1.BadRequestException('An Estate with this name already exists.');
+                throw new BadRequestException('An Estate with this name already exists.');
             }
             const estateData = new this.estateModel({
                 ...dto,
@@ -46,21 +43,21 @@ let EstateMgtService = class EstateMgtService {
             return {
                 success: true,
                 message: 'Estate created successfully.',
-                data: (0, transform_util_1.toResponseObject)(savedEstate),
+                data: toResponseObject(savedEstate),
             };
         }
         catch (error) {
             if (error.code === 11000) {
-                throw new common_1.BadRequestException('Duplicate estate name detected.');
+                throw new BadRequestException('Duplicate estate name detected.');
             }
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async updateEstate(estateId, dto) {
         try {
             const estate = await this.estateModel.findById(estateId);
             if (!estate) {
-                throw new common_1.NotFoundException("Estate not found");
+                throw new NotFoundException("Estate not found");
             }
             estate.name = dto.name?.trim()?.toLowerCase() || estate.name;
             estate.address = dto.address?.trim() || estate.address;
@@ -74,11 +71,11 @@ let EstateMgtService = class EstateMgtService {
             return {
                 success: true,
                 message: "Estate updated successfully.",
-                data: (0, transform_util_1.toResponseObject)(estate),
+                data: toResponseObject(estate),
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getAllEstates(page = 1, limit = 10, search) {
@@ -106,7 +103,7 @@ let EstateMgtService = class EstateMgtService {
             return {
                 success: true,
                 message: 'Estates retrieved successfully.',
-                data: (0, transform_util_1.toResponseObject)(estates),
+                data: toResponseObject(estates),
                 pagination: {
                     total,
                     currentPage: page,
@@ -116,30 +113,30 @@ let EstateMgtService = class EstateMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getEstate(id) {
         try {
             const estate = await this.estateModel.findById(id);
             if (!estate) {
-                throw new common_1.BadRequestException("Estate does not exist.");
+                throw new BadRequestException("Estate does not exist.");
             }
             return {
                 success: true,
                 message: "Estate retrieved successfully",
-                data: (0, transform_util_1.toResponseObject)(estate)
+                data: toResponseObject(estate)
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async deleteEstate(id) {
         try {
             const estate = await this.estateModel.findByIdAndDelete(id);
             if (!estate) {
-                throw new common_1.BadRequestException("Estate does not exist.");
+                throw new BadRequestException("Estate does not exist.");
             }
             await this.userModel.deleteMany({ id });
             return {
@@ -148,17 +145,17 @@ let EstateMgtService = class EstateMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async suspendEstate(id) {
         try {
             const suspendEstate = await this.estateModel.findById(id);
             if (!suspendEstate) {
-                throw new common_1.NotFoundException("estate not found.");
+                throw new NotFoundException("estate not found.");
             }
             if (!suspendEstate.isActive) {
-                throw new common_1.BadRequestException("Estate is already suspended.");
+                throw new BadRequestException("Estate is already suspended.");
             }
             suspendEstate.isActive = false;
             await suspendEstate.save();
@@ -168,17 +165,17 @@ let EstateMgtService = class EstateMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async activateEstate(id) {
         try {
             const activateEstate = await this.estateModel.findById(id);
             if (!activateEstate) {
-                throw new common_1.NotFoundException("Estate not found.");
+                throw new NotFoundException("Estate not found.");
             }
             if (activateEstate.isActive) {
-                throw new common_1.BadRequestException("Estate is already active.");
+                throw new BadRequestException("Estate is already active.");
             }
             activateEstate.isActive = true;
             await activateEstate.save();
@@ -188,16 +185,16 @@ let EstateMgtService = class EstateMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
 };
-exports.EstateMgtService = EstateMgtService;
-exports.EstateMgtService = EstateMgtService = __decorate([
-    (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(estate_schema_1.Estate.name)),
-    __param(1, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
-    __metadata("design:paramtypes", [mongoose_2.Model,
-        mongoose_2.Model])
+EstateMgtService = __decorate([
+    Injectable(),
+    __param(0, InjectModel(Estate.name)),
+    __param(1, InjectModel(User.name)),
+    __metadata("design:paramtypes", [Model,
+        Model])
 ], EstateMgtService);
+export { EstateMgtService };
 //# sourceMappingURL=estate-mgt.service.js.map

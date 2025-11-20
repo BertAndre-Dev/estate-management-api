@@ -11,6 +11,7 @@ import { Entry, EntrySchema } from 'src/schema/address/entry.schema';
 import { TransactionMgtModule } from '../transaction-mgt/transaction-mgt.module';
 import { IecClientService } from '../iec/iec-client.service';
 import { PendingRequest, PendingRequestSchema } from 'src/schema/ice/pending-request.schema';
+import { RealtimeModule } from 'src/common/utils/real-time/real-time.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { PendingRequest, PendingRequestSchema } from 'src/schema/ice/pending-req
     ]),
 
     TransactionMgtModule, 
+    RealtimeModule,
   ],
   controllers: [MeterMgtController],
   providers: [

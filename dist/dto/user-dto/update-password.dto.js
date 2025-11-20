@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,39 +7,36 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdatePasswordDto = void 0;
-const swagger_1 = require("@nestjs/swagger");
-const class_validator_1 = require("class-validator");
-class UpdatePasswordDto {
+import { ApiProperty } from '@nestjs/swagger';
+import { Matches, MaxLength, MinLength, IsNotEmpty, IsString, } from 'class-validator';
+export class UpdatePasswordDto {
     currentPassword;
     newPassword;
 }
-exports.UpdatePasswordDto = UpdatePasswordDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({
+    ApiProperty({
         example: 'password123',
         description: 'Current password for the user account',
     }),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MinLength)(8, { message: "Password too short, it should be a minimum of 8 characters." }),
-    (0, class_validator_1.MaxLength)(15, { message: "Password too long, it should be a maximum of 15 characters." }),
-    (0, class_validator_1.Matches)(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/, {
+    IsString(),
+    IsNotEmpty(),
+    MinLength(8, { message: "Password too short, it should be a minimum of 8 characters." }),
+    MaxLength(15, { message: "Password too long, it should be a maximum of 15 characters." }),
+    Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/, {
         message: 'Password too weak',
     }),
     __metadata("design:type", String)
 ], UpdatePasswordDto.prototype, "currentPassword", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({
+    ApiProperty({
         example: 'password123',
         description: 'New password for the user account',
     }),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MinLength)(8, { message: "Password too short, it should be a minimum of 8 characters." }),
-    (0, class_validator_1.MaxLength)(15, { message: "Password too long, it should be a maximum of 15 characters." }),
-    (0, class_validator_1.Matches)(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/, {
+    IsString(),
+    IsNotEmpty(),
+    MinLength(8, { message: "Password too short, it should be a minimum of 8 characters." }),
+    MaxLength(15, { message: "Password too long, it should be a maximum of 15 characters." }),
+    Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/, {
         message: 'Password too weak',
     }),
     __metadata("design:type", String)

@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -9,13 +8,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var IecAuthService_1;
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.IecAuthService = void 0;
-const common_1 = require("@nestjs/common");
-const iec_client_service_1 = require("./iec-client.service");
+import { Injectable, Logger } from '@nestjs/common';
+import { IecClientService } from './iec-client.service';
 let IecAuthService = IecAuthService_1 = class IecAuthService {
     iecClient;
-    logger = new common_1.Logger(IecAuthService_1.name);
+    logger = new Logger(IecAuthService_1.name);
     constructor(iecClient) {
         this.iecClient = iecClient;
     }
@@ -31,9 +28,9 @@ let IecAuthService = IecAuthService_1 = class IecAuthService {
         return resp;
     }
 };
-exports.IecAuthService = IecAuthService;
-exports.IecAuthService = IecAuthService = IecAuthService_1 = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [iec_client_service_1.IecClientService])
+IecAuthService = IecAuthService_1 = __decorate([
+    Injectable(),
+    __metadata("design:paramtypes", [IecClientService])
 ], IecAuthService);
+export { IecAuthService };
 //# sourceMappingURL=auth.service.js.map

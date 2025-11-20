@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -11,17 +10,15 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TransactionMgtService = void 0;
-const common_1 = require("@nestjs/common");
-const mongoose_1 = require("@nestjs/mongoose");
-const mongoose_2 = require("mongoose");
-const transaction_schema_1 = require("../../schema/transaction.schema");
-const transaction_schema_2 = require("../../schema/transaction.schema");
-const wallet_schema_1 = require("../../schema/wallet.schema");
-const transform_util_1 = require("../../common/utils/transform.util");
-const payment_mgt_service_1 = require("../payment-mgt/payment-mgt.service");
-const uuid_1 = require("uuid");
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Transaction } from "../../schema/transaction.schema";
+import { PaymentStatus } from "../../schema/transaction.schema";
+import { Wallet } from "../../schema/wallet.schema";
+import { toResponseObject } from "../../common/utils/transform.util";
+import { PaymentMgtService } from '../payment-mgt/payment-mgt.service';
+import { v4 as uuidv4 } from 'uuid';
 let TransactionMgtService = class TransactionMgtService {
     transactionModel;
     walletModel;
@@ -33,21 +30,21 @@ let TransactionMgtService = class TransactionMgtService {
     }
     async createTransaction(dto) {
         if (!dto.walletId || !dto.type || !dto.amount) {
-            throw new common_1.BadRequestException("walletId, type, and amount are required.");
+            throw new BadRequestException("walletId, type, and amount are required.");
         }
         const wallet = await this.walletModel.findById(dto.walletId);
         if (!wallet) {
-            throw new common_1.BadRequestException("Wallet does not exist.");
+            throw new BadRequestException("Wallet does not exist.");
         }
         try {
-            const tx_ref = `tx-${(0, uuid_1.v4)()}`;
+            const tx_ref = `tx-${uuidv4()}`;
             if (dto.type === 'debit' && wallet.balance < dto.amount) {
-                throw new common_1.BadRequestException("Insufficient balance for debit transaction.");
+                throw new BadRequestException("Insufficient balance for debit transaction.");
             }
             let paymentStatus;
             if (dto.type === 'debit') {
                 wallet.balance -= dto.amount;
-                paymentStatus = transaction_schema_2.PaymentStatus.PAID;
+                paymentStatus = PaymentStatus.PAID;
             }
             else {
                 if (wallet.temporaryBalance === undefined) {
@@ -62,7 +59,7 @@ let TransactionMgtService = class TransactionMgtService {
                 paymentStatus: paymentStatus,
             });
             const savedTransaction = await transaction.save();
-            const response = (0, transform_util_1.toResponseObject)(savedTransaction);
+            const response = toResponseObject(savedTransaction);
             return {
                 success: true,
                 message: "Transaction created successfully.",
@@ -70,24 +67,24 @@ let TransactionMgtService = class TransactionMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async verifyTransaction(tx_ref, paymentType) {
         try {
             const paymentResult = await this.payment.verifyPayment(tx_ref, paymentType);
-            let paymentStatus = transaction_schema_2.PaymentStatus.PENDING;
+            let paymentStatus = PaymentStatus.PENDING;
             if (paymentResult.status === 'success') {
-                paymentStatus = transaction_schema_2.PaymentStatus.PAID;
+                paymentStatus = PaymentStatus.PAID;
             }
             else {
-                paymentStatus = transaction_schema_2.PaymentStatus.PENDING;
+                paymentStatus = PaymentStatus.PENDING;
             }
             const transaction = await this.transactionModel.findOne({ tx_ref });
             if (!transaction) {
-                throw new common_1.NotFoundException('Transaction not found.');
+                throw new NotFoundException('Transaction not found.');
             }
-            if (transaction.paymentStatus === transaction_schema_2.PaymentStatus.PAID) {
+            if (transaction.paymentStatus === PaymentStatus.PAID) {
                 return {
                     success: true,
                     message: 'Transaction already verified and paid.',
@@ -96,10 +93,10 @@ let TransactionMgtService = class TransactionMgtService {
             }
             transaction.paymentStatus = paymentStatus;
             await transaction.save();
-            if (paymentStatus === transaction_schema_2.PaymentStatus.PAID) {
+            if (paymentStatus === PaymentStatus.PAID) {
                 const wallet = await this.walletModel.findById(transaction.walletId);
                 if (!wallet) {
-                    throw new common_1.NotFoundException('Wallet not found.');
+                    throw new NotFoundException('Wallet not found.');
                 }
                 if (transaction.type === 'credit') {
                     wallet.balance += transaction.amount;
@@ -117,7 +114,7 @@ let TransactionMgtService = class TransactionMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getAllInflowTransactions(page = 1, limit = 10) {
@@ -135,7 +132,7 @@ let TransactionMgtService = class TransactionMgtService {
             return {
                 success: true,
                 message: "All inflow transactions retrieved successfully.",
-                data: (0, transform_util_1.toResponseObject)(transactions),
+                data: toResponseObject(transactions),
                 pagination: {
                     total,
                     page,
@@ -145,17 +142,17 @@ let TransactionMgtService = class TransactionMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getTransactionHistory(userId, page = 1, limit = 10) {
         try {
             if (!userId) {
-                throw new common_1.BadRequestException("userId is required.");
+                throw new BadRequestException("userId is required.");
             }
             const wallet = await this.walletModel.findOne({ userId });
             if (!wallet) {
-                throw new common_1.BadRequestException("Wallet does not exist for this user.");
+                throw new BadRequestException("Wallet does not exist for this user.");
             }
             const skip = (page - 1) * limit;
             const total = await this.transactionModel.countDocuments({ walletId: wallet._id });
@@ -167,7 +164,7 @@ let TransactionMgtService = class TransactionMgtService {
             return {
                 success: true,
                 message: "Transaction history retrieved successfully.",
-                data: (0, transform_util_1.toResponseObject)(transactions),
+                data: toResponseObject(transactions),
                 pagination: {
                     total,
                     page,
@@ -177,36 +174,36 @@ let TransactionMgtService = class TransactionMgtService {
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
     async getTransactionById(transactionId) {
         try {
             if (!transactionId) {
-                throw new common_1.BadRequestException("transactionId is required.");
+                throw new BadRequestException("transactionId is required.");
             }
             const transaction = await this.transactionModel.findById(transactionId);
             if (!transaction) {
-                throw new common_1.NotFoundException("Transaction not found.");
+                throw new NotFoundException("Transaction not found.");
             }
             return {
                 success: true,
                 message: "Transaction retrieved successfully.",
-                data: (0, transform_util_1.toResponseObject)(transaction),
+                data: toResponseObject(transaction),
             };
         }
         catch (error) {
-            throw new common_1.BadRequestException(error.message);
+            throw new BadRequestException(error.message);
         }
     }
 };
-exports.TransactionMgtService = TransactionMgtService;
-exports.TransactionMgtService = TransactionMgtService = __decorate([
-    (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(transaction_schema_1.Transaction.name)),
-    __param(1, (0, mongoose_1.InjectModel)(wallet_schema_1.Wallet.name)),
-    __metadata("design:paramtypes", [mongoose_2.Model,
-        mongoose_2.Model,
-        payment_mgt_service_1.PaymentMgtService])
+TransactionMgtService = __decorate([
+    Injectable(),
+    __param(0, InjectModel(Transaction.name)),
+    __param(1, InjectModel(Wallet.name)),
+    __metadata("design:paramtypes", [Model,
+        Model,
+        PaymentMgtService])
 ], TransactionMgtService);
+export { TransactionMgtService };
 //# sourceMappingURL=transaction-mgt.service.js.map

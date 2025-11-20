@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { InjectModel } from '@nestjs/mongoose';
@@ -18,6 +18,8 @@ import { Entry, EntryDocument } from 'src/schema/address/entry.schema';
 import { IecClientService } from '../iec/iec-client.service';
 import { DisconnectMeterDto } from 'src/dto/iec-dto/disconnect-meter.dto';
 import { ReconnectMeterDto } from 'src/dto/iec-dto/reconnect-meter.dto';
+import { RealtimeGateway } from "src/common/utils/real-time/real-time.gateway";
+
 
 @Injectable()
 export class MeterMgtService {
@@ -28,6 +30,7 @@ export class MeterMgtService {
     private http: HttpService,
     private transaction: TransactionMgtService,
     private ice: IecClientService,
+    private gateway: RealtimeGateway,
     @InjectModel(MeterReading.name) private meterReadingModel: Model<MeterReadingDocument>,
     @InjectModel(Meter.name) private meterModel: Model<MeterDocument>,
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
@@ -35,6 +38,63 @@ export class MeterMgtService {
     @InjectModel(Entry.name) private entryModel: Model<EntryDocument>,
   ) {}
 
+
+    // Run every 30 seconds (can change to 10s, 60s, 5 min etc.)
+    @Cron("*/30 * * * * *")
+    async monitorMeters() {
+        // Query the Meter collection (not MeterReading) — we need meter fields like supportedDataTypes, meterNumber, lastReading, etc.
+        const meters = await this.meterModel.find();
+
+        for (const meter of meters) {
+            try {
+            // 1) Find OBIS for import energy
+            const energyObis = (meter as any).supportedDataTypes?.find((x: any) =>
+                String(x.dTypeName).toLowerCase().includes("import active energy")
+            );
+
+            if (!energyObis) continue;
+
+            // 2) Request reading (IEC client obtains token internally)
+            const reading = await this.ice.getMeterReadings(
+                meter.meterNumber,
+                energyObis.dTypeID
+            );
+
+            // reading can be a vendor response shape; cast to any to safely access parsed
+            const energyNow = Number((reading as any)?.parsed?.value ?? 0);
+
+            // 3) Compute consumption
+            const last = meter.lastReading ?? null;
+            // ensure last.energy is treated as 0 when undefined to avoid compile errors
+            let consumption = last ? energyNow - (last.energy ?? 0) : 0;
+
+            // 4) Compute prepaid balance
+            // Treat undefined/null lastTokenKwh as 0 to avoid runtime/compile errors
+            let balance = Number(meter.lastTokenKwh ?? 0) - energyNow;
+            if (balance < 0) balance = 0;
+
+            // 5) Save to DB
+            meter.lastReading = {
+                timestamp: new Date().toISOString(),
+                energy: energyNow,
+                consumption,
+            };
+            meter.balance = balance;
+            await meter.save();
+
+            // 6) Realtime broadcast
+            (this.gateway as any).broadcastMeterUpdate?.({
+                meterNumber: meter.meterNumber,
+                energy: energyNow,
+                consumption,
+                balance,
+            });
+
+            } catch (e) {
+                this.logger.error(`Realtime error for meter ${meter.meterNumber}`, e);
+            }
+        }
+    }
 
 
     // Add meter to an estate
@@ -348,12 +408,12 @@ export class MeterMgtService {
             }
     
             // recommended: save vend details locally
-            // await this.meterReadingModel.create({
-            //     meterNumber: dto.meterNumber,
-            //     receivedToken: data.energyList?.[0]?.token ?? null,
-            //     amount: dto.amount,
-            //     transId,
-            // });
+            await this.meterReadingModel.create({
+                meterNumber: dto.meterNumber,
+                receivedToken: data.energyList?.[0]?.token ?? null,
+                amount: dto.amount,
+                transId,
+            });
     
             return {
                 success: true,
@@ -364,38 +424,6 @@ export class MeterMgtService {
             throw new BadRequestException(error.message);
         }
     }
-
-
-    // Toggle meter status
-    // async toggleMeterStatus(meterNumber: string, isActive: boolean) {
-    //     try {
-    //         const meter = await this.meterModel.findOne({ meterNumber });
-    //         if (!meter) throw new BadRequestException('Meter not found.');
-
-    //         // Update status locally
-    //         meter.isActive = isActive;
-    //         await meter.save();
-
-    //         // Optional: Sync with vendor side
-    //         const token = await this.getVendorAuthToken();
-
-    //         if (!isActive) {
-    //         await this.disconnectMeter(meterNumber);
-    //         this.logger.log(`Meter ${meterNumber} deactivated and disconnected.`);
-    //         } else {
-    //         await this.reconnectMeter(meterNumber);
-    //         this.logger.log(`Meter ${meterNumber} reactivated and reconnected.`);
-    //         }
-
-    //         return {
-    //             success: true,
-    //             message: `Meter ${isActive ? 'activated' : 'deactivated'} successfully`,
-    //             data: toResponseObject(meter),
-    //         };
-    //     } catch (error) {
-    //         throw new BadRequestException(error.message || 'Unable to toggle meter status.');
-    //     }
-    // }
 
 
     // Disconnect a meter using AMI

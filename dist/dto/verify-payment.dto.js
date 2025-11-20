@@ -1,4 +1,3 @@
-"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,23 +7,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.VerifyPaymentDto = void 0;
-const swagger_1 = require("@nestjs/swagger");
-const class_validator_1 = require("class-validator");
-const payment_type_enum_1 = require("../common/enum/payment-type.enum");
-class VerifyPaymentDto {
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsString } from 'class-validator';
+import { PaymentType } from "../common/enum/payment-type.enum";
+export class VerifyPaymentDto {
     paymentType;
     tx_ref;
 }
-exports.VerifyPaymentDto = VerifyPaymentDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ enum: payment_type_enum_1.PaymentType }),
-    (0, class_validator_1.IsEnum)(payment_type_enum_1.PaymentType),
+    ApiProperty({ enum: PaymentType }),
+    IsEnum(PaymentType),
     __metadata("design:type", String)
 ], VerifyPaymentDto.prototype, "paymentType", void 0);
 __decorate([
-    (0, class_validator_1.IsString)(),
+    IsString(),
     __metadata("design:type", String)
 ], VerifyPaymentDto.prototype, "tx_ref", void 0);
 //# sourceMappingURL=verify-payment.dto.js.map
