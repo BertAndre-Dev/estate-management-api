@@ -19,6 +19,7 @@ import { IecClientService } from '../iec/iec-client.service';
 import { DisconnectMeterDto } from 'src/dto/iec-dto/disconnect-meter.dto';
 import { ReconnectMeterDto } from 'src/dto/iec-dto/reconnect-meter.dto';
 import { RealtimeGateway } from "src/common/utils/real-time/real-time.gateway";
+import { MeterReadingDto } from 'src/dto/meter-reading.dto';
 
 
 @Injectable()
@@ -40,61 +41,293 @@ export class MeterMgtService {
 
 
     // Run every 30 seconds (can change to 10s, 60s, 5 min etc.)
-    @Cron("*/30 * * * * *")
+    @Cron("*/30 * * * * *") // every 30s
     async monitorMeters() {
-        // Query the Meter collection (not MeterReading) — we need meter fields like supportedDataTypes, meterNumber, lastReading, etc.
-        const meters = await this.meterModel.find();
+    const meters = await this.meterModel.find(); // You may replace with static list if no DB
 
-        for (const meter of meters) {
-            try {
-            // 1) Find OBIS for import energy
-            const energyObis = (meter as any).supportedDataTypes?.find((x: any) =>
-                String(x.dTypeName).toLowerCase().includes("import active energy")
+    for (const meter of meters) {
+        try {
+        // STEP 1 — Get token (automatically cached)
+        const token = await this.ice.getToken();
+
+        // STEP 2 — Get the full meter profile (LIVE)
+        const details = await this.ice.detailsMeter(meter.meterNumber);
+
+        const payload =
+            (details as any)?.ack?.ResponseMessage?.Payload?.['m:DetailsMeter'];
+
+        if (!payload) {
+            this.logger.error(`❌ No DetailsMeter payload for ${meter.meterNumber}`);
+            continue;
+        }
+
+        const dataTypes = payload?.['m:dataTypes']?.['m:dataType'] || [];
+        const findType = (namePart: string) =>
+            dataTypes.find((x) =>
+            String(x?.['m:dTypeName']).toLowerCase().includes(namePart.toLowerCase())
             );
 
-            if (!energyObis) continue;
+        // STEP 3 — Extract useful OBIS dynamically
+        const obisEnergy = findType("import active energy");
+        const obisBalance = findType("residual credit");
+        const obisPower = findType("instantaneous power");
+        const obisVoltL1 = findType("l1 phase voltage");
+        const obisVoltL2 = findType("l2 phase voltage");
+        const obisVoltL3 = findType("l3 phase voltage");
+        const obisCurrL1 = findType("l1 phase current");
+        const obisCurrL2 = findType("l2 phase current");
+        const obisCurrL3 = findType("l3 phase current");
 
-            // 2) Request reading (IEC client obtains token internally)
-            const reading = await this.ice.getMeterReadings(
-                meter.meterNumber,
-                energyObis.dTypeID
+        // STEP 4 — Read energy, power, voltage, etc
+        const read = async (obis) => {
+            if (!obis) return null;
+            const resp = await this.ice.getMeterReadings(
+            meter.meterNumber,
+            obis['m:dTypeID']
             );
+            return Number((resp as any)?.parsed?.value ?? 0);
+        };
 
-            // reading can be a vendor response shape; cast to any to safely access parsed
-            const energyNow = Number((reading as any)?.parsed?.value ?? 0);
+        const energy = await read(obisEnergy);
+        const balance = await read(obisBalance);
+        const power = await read(obisPower);
 
-            // 3) Compute consumption
-            const last = meter.lastReading ?? null;
-            // ensure last.energy is treated as 0 when undefined to avoid compile errors
-            let consumption = last ? energyNow - (last.energy ?? 0) : 0;
+        const voltageL1 = await read(obisVoltL1);
+        const voltageL2 = await read(obisVoltL2);
+        const voltageL3 = await read(obisVoltL3);
 
-            // 4) Compute prepaid balance
-            // Treat undefined/null lastTokenKwh as 0 to avoid runtime/compile errors
-            let balance = Number(meter.lastTokenKwh ?? 0) - energyNow;
-            if (balance < 0) balance = 0;
+        const currentL1 = await read(obisCurrL1);
+        const currentL2 = await read(obisCurrL2);
+        const currentL3 = await read(obisCurrL3);
 
-            // 5) Save to DB
-            meter.lastReading = {
-                timestamp: new Date().toISOString(),
-                energy: energyNow,
-                consumption,
-            };
-            meter.balance = balance;
-            await meter.save();
+        // STEP 5 — compute consumption (live temp, not stored)
+        const lastEnergy = (meter as any)?._lastEnergy ?? (energy ?? 0);
+        const consumption = (energy ?? 0) - lastEnergy;
 
-            // 6) Realtime broadcast
-            (this.gateway as any).broadcastMeterUpdate?.({
+        (meter as any)._lastEnergy = (energy ?? 0); // internal variable only
+
+        // STEP 6 — BROADCAST REALTIME EVENTS
+
+        // A) MAIN READING
+        this.gateway.publishMeterReading({
+            meterNumber: meter.meterNumber,
+            energy: energy ?? undefined,
+            instantaneousPower: power ?? undefined,
+            voltageL1: voltageL1 ?? undefined,
+            voltageL2: voltageL2 ?? undefined,
+            voltageL3: voltageL3 ?? undefined,
+            currentL1: currentL1 ?? undefined,
+            currentL2: currentL2 ?? undefined,
+            currentL3: currentL3 ?? undefined,
+            timestamp: new Date()
+        });
+
+        // B) BALANCE
+        if (balance !== null) {
+            this.gateway.publishBalance({
                 meterNumber: meter.meterNumber,
-                energy: energyNow,
-                consumption,
                 balance,
+                used: energy ?? undefined,
             });
+        }
 
-            } catch (e) {
-                this.logger.error(`Realtime error for meter ${meter.meterNumber}`, e);
-            }
+        // C) Diagnostics (voltage / current / PF)
+        this.gateway.publishDiagnostics({
+            meterNumber: meter.meterNumber,
+            voltageL1: voltageL1 ?? undefined,
+            voltageL2: voltageL2 ?? undefined,
+            voltageL3: voltageL3 ?? undefined,
+            currentL1: currentL1 ?? undefined,
+            currentL2: currentL2 ?? undefined,
+            currentL3: currentL3 ?? undefined,
+            // Optional PF: compute from energy/power if needed
+        });
+
+        } catch (err) {
+        this.logger.error(
+            `🔥 Realtime error on meter ${meter.meterNumber}`,
+            err,
+        );
         }
     }
+    }
+
+
+
+    /**
+     * 📡 Get the most recent real-time meter reading
+     */
+    async getRealtimeReading(meterNumber: string) {
+        try {
+            // STEP 0 — Validate input
+            if (!meterNumber || meterNumber.trim() === "") {
+            throw new BadRequestException("Meter number is required");
+            }
+
+            this.logger.debug(`Fetching meter details for meterNumber: ${meterNumber}`);
+
+            // STEP 1 — Get full meter details
+            const details = await this.ice.detailsMeter(meterNumber);
+
+            if (!details || !(details as any)?.ack?.ResponseMessage?.Payload) {
+            throw new BadRequestException("Invalid response from HES for DetailsMeter");
+            }
+
+            const detailsMeterPayload =
+            (details as any).ack.ResponseMessage.Payload["m:DetailsMeter"];
+
+            if (!detailsMeterPayload) {
+            throw new BadRequestException("No DetailsMeter payload returned from HES");
+            }
+
+            this.logger.debug(`DetailsMeter payload received: ${JSON.stringify(detailsMeterPayload)}`);
+
+            // STEP 2 — Find OBIS for Import Active Energy
+            const obis = this.ice.extractObis(details, "Import Active Energy");
+
+            if (!obis || !obis["m:dTypeID"]) {
+            throw new BadRequestException("OBIS for Import Active Energy not found");
+            }
+
+            this.logger.debug(`OBIS found: ${JSON.stringify(obis)}`);
+
+            // STEP 3 — Read the actual meter value
+            const readingResp = await this.ice.readData(meterNumber, obis["m:dTypeID"]);
+
+            const value = Number(
+            (readingResp as any)?.ack?.ResponseMessage?.Payload?.value ?? 0
+            );
+
+            this.logger.debug(`Meter reading received: ${value}`);
+
+            return {
+                success: true,
+                message: 'Meter real time reading rerieved successfully.',
+                data: {
+                    meterNumber,
+                    energy: value,
+                    timestamp: new Date()
+                }
+            };
+        } catch (error) {
+            this.logger.error(`Error fetching realtime reading for meter ${meterNumber}: ${error.message}`);
+            throw new BadRequestException(error.message);
+        }
+    }
+
+
+
+
+    /**
+     * ⚡ Get only the real-time available balance (kWh)
+     */
+    async getRealtimeBalance(meterNumber: string) {
+        try {
+            const details = await this.ice.detailsMeter(meterNumber);
+
+            const residual = this.ice.extractObis(details, "Residual Credit");
+            const importEnergy = this.ice.extractObis(details, "Import Active Energy");
+
+            if (!residual) throw new NotFoundException("Residual Credit OBIS not found");
+            if (!importEnergy) throw new NotFoundException("Import Energy OBIS not found");
+
+            const balRaw = await this.ice.readData(meterNumber, residual["m:dTypeID"]);
+            const eneRaw = await this.ice.readData(meterNumber, importEnergy["m:dTypeID"]);
+
+            const balance = Number((balRaw as any)?.ack?.ResponseMessage?.Payload?.value ?? 0);
+            const energy = Number((eneRaw as any)?.ack?.ResponseMessage?.Payload?.value ?? 0);
+
+            return {
+                success: true,
+                message: "Meter usage retrieved successfully.",
+                data: {
+                    meterNumber,
+                    balance,
+                    used: energy,
+                    timestamp: new Date(),
+                }
+            };
+        } catch (error) {
+            throw new BadRequestException(error.message)
+        }
+    };
+
+
+    /**
+     * 📊 Usage chart for energy consumption over time
+     */
+    async getConsumptionChart(
+        meterNumber: string,
+        range: "daily" | "weekly" | "monthly" | "yearly" = "weekly"
+    ) {
+        try {
+            if (!meterNumber) throw new BadRequestException("Meter number is required");
+
+            // STEP 1 — Get full meter details
+            const details = await this.ice.detailsMeter(meterNumber);
+            const detailsMeterPayload =
+            (details as any)?.ack?.ResponseMessage?.Payload?.["m:DetailsMeter"];
+            if (!detailsMeterPayload) {
+            throw new NotFoundException("No DetailsMeter payload returned");
+            }
+
+            // STEP 2 — Map range to OBIS profile name
+            let profileName = "";
+            switch (range) {
+            case "daily":
+                profileName = "Daily billing profile";
+                break;
+            case "weekly":
+                profileName = "Load Profile 1";
+                break;
+            case "monthly":
+                profileName = "Monthly billing profile";
+                break;
+            case "yearly":
+                profileName = "Import Active Energy Last 1 Month";
+                break;
+            default:
+                profileName = "Daily billing profile";
+            }
+
+            // STEP 3 — Find the OBIS
+            const obis = this.ice.extractObis(details, profileName);
+            if (!obis) throw new NotFoundException(`OBIS not found for ${profileName}`);
+
+            // STEP 4 — Read the actual profile data
+            const raw = await this.ice.readData(meterNumber, obis["m:dTypeID"]);
+            const values = (raw as any)?.ack?.ResponseMessage?.Payload?.value ?? [];
+
+            // STEP 5 — Map the raw OBIS data into chart-friendly format
+            const chart = Array.isArray(values)
+            ? values.map((v: any, i: number) => ({
+                time: new Date(v.timestamp ?? Date.now() - (values.length - i) * 3600 * 1000),
+                value: Number(v.value ?? 0),
+                }))
+            : [
+                {
+                    time: new Date(),
+                    value: Number(values ?? 0),
+                },
+                ];
+
+            return {
+            success: true,
+            message: "Meter consumption chart retrieved successfully",
+            data: {
+                meterNumber,
+                range,
+                from: chart[0]?.time ?? new Date(),
+                to: chart[chart.length - 1]?.time ?? new Date(),
+                count: chart.length,
+                chart,
+            },
+            };
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
+    }
+
 
 
     // Add meter to an estate

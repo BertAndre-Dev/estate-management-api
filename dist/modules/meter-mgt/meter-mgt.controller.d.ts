@@ -51,6 +51,40 @@ export declare class MeterMgtController {
             totalPages: number;
         };
     }>;
+    getRealtimeReading(meterNumber: string): Promise<{
+        success: boolean;
+        message: string;
+        data: {
+            meterNumber: string;
+            energy: number;
+            timestamp: Date;
+        };
+    }>;
+    getRealtimeBalance(meterNumber: string): Promise<{
+        success: boolean;
+        message: string;
+        data: {
+            meterNumber: string;
+            balance: number;
+            used: number;
+            timestamp: Date;
+        };
+    }>;
+    getConsumptionChart(meterNumber: string, range?: "daily" | "weekly" | "monthly" | "yearly"): Promise<{
+        success: boolean;
+        message: string;
+        data: {
+            meterNumber: string;
+            range: "daily" | "weekly" | "monthly" | "yearly";
+            from: Date;
+            to: Date;
+            count: number;
+            chart: {
+                time: Date;
+                value: number;
+            }[];
+        };
+    }>;
     trialVend(dto: VendPowerDto): Promise<{
         success: boolean;
         message: string;

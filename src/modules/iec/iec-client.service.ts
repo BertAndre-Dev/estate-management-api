@@ -270,5 +270,34 @@ export class IecClientService {
     };
 
     return this.postRequest('DetailsMeter', payload, token);
+  };
+
+
+  /**
+   * 🔍 Read a specific OBIS value (ReadData)
+   */
+  async readData(meterNumber: string, dTypeID: string) {
+    const token = await this.getToken();
+
+    const payload = {
+      "m:ReadData": {
+        "m:mRID": meterNumber,
+        "m:dTypeID": dTypeID,
+      },
+    };
+
+    return this.postRequest("ReadData", payload, token);
+  }
+
+  /**
+   * Extract the OBIS with a matching name
+   */
+  extractObis(details: any, match: string) {
+    const types =
+      details.ack.ResponseMessage.Payload["m:DetailsMeter"]["m:dataTypes"]["m:dataType"];
+
+    return types.find(t =>
+      t["m:dTypeName"].toLowerCase().includes(match.toLowerCase())
+    );
   }
 }

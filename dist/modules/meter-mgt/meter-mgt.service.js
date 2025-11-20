@@ -58,33 +58,200 @@ let MeterMgtService = MeterMgtService_1 = class MeterMgtService {
         const meters = await this.meterModel.find();
         for (const meter of meters) {
             try {
-                const energyObis = meter.supportedDataTypes?.find((x) => String(x.dTypeName).toLowerCase().includes("import active energy"));
-                if (!energyObis)
+                const token = await this.ice.getToken();
+                const details = await this.ice.detailsMeter(meter.meterNumber);
+                const payload = details?.ack?.ResponseMessage?.Payload?.['m:DetailsMeter'];
+                if (!payload) {
+                    this.logger.error(`❌ No DetailsMeter payload for ${meter.meterNumber}`);
                     continue;
-                const reading = await this.ice.getMeterReadings(meter.meterNumber, energyObis.dTypeID);
-                const energyNow = Number(reading?.parsed?.value ?? 0);
-                const last = meter.lastReading ?? null;
-                let consumption = last ? energyNow - (last.energy ?? 0) : 0;
-                let balance = Number(meter.lastTokenKwh ?? 0) - energyNow;
-                if (balance < 0)
-                    balance = 0;
-                meter.lastReading = {
-                    timestamp: new Date().toISOString(),
-                    energy: energyNow,
-                    consumption,
+                }
+                const dataTypes = payload?.['m:dataTypes']?.['m:dataType'] || [];
+                const findType = (namePart) => dataTypes.find((x) => String(x?.['m:dTypeName']).toLowerCase().includes(namePart.toLowerCase()));
+                const obisEnergy = findType("import active energy");
+                const obisBalance = findType("residual credit");
+                const obisPower = findType("instantaneous power");
+                const obisVoltL1 = findType("l1 phase voltage");
+                const obisVoltL2 = findType("l2 phase voltage");
+                const obisVoltL3 = findType("l3 phase voltage");
+                const obisCurrL1 = findType("l1 phase current");
+                const obisCurrL2 = findType("l2 phase current");
+                const obisCurrL3 = findType("l3 phase current");
+                const read = async (obis) => {
+                    if (!obis)
+                        return null;
+                    const resp = await this.ice.getMeterReadings(meter.meterNumber, obis['m:dTypeID']);
+                    return Number(resp?.parsed?.value ?? 0);
                 };
-                meter.balance = balance;
-                await meter.save();
-                this.gateway.broadcastMeterUpdate?.({
+                const energy = await read(obisEnergy);
+                const balance = await read(obisBalance);
+                const power = await read(obisPower);
+                const voltageL1 = await read(obisVoltL1);
+                const voltageL2 = await read(obisVoltL2);
+                const voltageL3 = await read(obisVoltL3);
+                const currentL1 = await read(obisCurrL1);
+                const currentL2 = await read(obisCurrL2);
+                const currentL3 = await read(obisCurrL3);
+                const lastEnergy = meter?._lastEnergy ?? (energy ?? 0);
+                const consumption = (energy ?? 0) - lastEnergy;
+                meter._lastEnergy = (energy ?? 0);
+                this.gateway.publishMeterReading({
                     meterNumber: meter.meterNumber,
-                    energy: energyNow,
-                    consumption,
-                    balance,
+                    energy: energy ?? undefined,
+                    instantaneousPower: power ?? undefined,
+                    voltageL1: voltageL1 ?? undefined,
+                    voltageL2: voltageL2 ?? undefined,
+                    voltageL3: voltageL3 ?? undefined,
+                    currentL1: currentL1 ?? undefined,
+                    currentL2: currentL2 ?? undefined,
+                    currentL3: currentL3 ?? undefined,
+                    timestamp: new Date()
+                });
+                if (balance !== null) {
+                    this.gateway.publishBalance({
+                        meterNumber: meter.meterNumber,
+                        balance,
+                        used: energy ?? undefined,
+                    });
+                }
+                this.gateway.publishDiagnostics({
+                    meterNumber: meter.meterNumber,
+                    voltageL1: voltageL1 ?? undefined,
+                    voltageL2: voltageL2 ?? undefined,
+                    voltageL3: voltageL3 ?? undefined,
+                    currentL1: currentL1 ?? undefined,
+                    currentL2: currentL2 ?? undefined,
+                    currentL3: currentL3 ?? undefined,
                 });
             }
-            catch (e) {
-                this.logger.error(`Realtime error for meter ${meter.meterNumber}`, e);
+            catch (err) {
+                this.logger.error(`🔥 Realtime error on meter ${meter.meterNumber}`, err);
             }
+        }
+    }
+    async getRealtimeReading(meterNumber) {
+        try {
+            if (!meterNumber || meterNumber.trim() === "") {
+                throw new common_1.BadRequestException("Meter number is required");
+            }
+            this.logger.debug(`Fetching meter details for meterNumber: ${meterNumber}`);
+            const details = await this.ice.detailsMeter(meterNumber);
+            if (!details || !details?.ack?.ResponseMessage?.Payload) {
+                throw new common_1.BadRequestException("Invalid response from HES for DetailsMeter");
+            }
+            const detailsMeterPayload = details.ack.ResponseMessage.Payload["m:DetailsMeter"];
+            if (!detailsMeterPayload) {
+                throw new common_1.BadRequestException("No DetailsMeter payload returned from HES");
+            }
+            this.logger.debug(`DetailsMeter payload received: ${JSON.stringify(detailsMeterPayload)}`);
+            const obis = this.ice.extractObis(details, "Import Active Energy");
+            if (!obis || !obis["m:dTypeID"]) {
+                throw new common_1.BadRequestException("OBIS for Import Active Energy not found");
+            }
+            this.logger.debug(`OBIS found: ${JSON.stringify(obis)}`);
+            const readingResp = await this.ice.readData(meterNumber, obis["m:dTypeID"]);
+            const value = Number(readingResp?.ack?.ResponseMessage?.Payload?.value ?? 0);
+            this.logger.debug(`Meter reading received: ${value}`);
+            return {
+                success: true,
+                message: 'Meter real time reading rerieved successfully.',
+                data: {
+                    meterNumber,
+                    energy: value,
+                    timestamp: new Date()
+                }
+            };
+        }
+        catch (error) {
+            this.logger.error(`Error fetching realtime reading for meter ${meterNumber}: ${error.message}`);
+            throw new common_1.BadRequestException(error.message);
+        }
+    }
+    async getRealtimeBalance(meterNumber) {
+        try {
+            const details = await this.ice.detailsMeter(meterNumber);
+            const residual = this.ice.extractObis(details, "Residual Credit");
+            const importEnergy = this.ice.extractObis(details, "Import Active Energy");
+            if (!residual)
+                throw new common_1.NotFoundException("Residual Credit OBIS not found");
+            if (!importEnergy)
+                throw new common_1.NotFoundException("Import Energy OBIS not found");
+            const balRaw = await this.ice.readData(meterNumber, residual["m:dTypeID"]);
+            const eneRaw = await this.ice.readData(meterNumber, importEnergy["m:dTypeID"]);
+            const balance = Number(balRaw?.ack?.ResponseMessage?.Payload?.value ?? 0);
+            const energy = Number(eneRaw?.ack?.ResponseMessage?.Payload?.value ?? 0);
+            return {
+                success: true,
+                message: "Meter usage retrieved successfully.",
+                data: {
+                    meterNumber,
+                    balance,
+                    used: energy,
+                    timestamp: new Date(),
+                }
+            };
+        }
+        catch (error) {
+            throw new common_1.BadRequestException(error.message);
+        }
+    }
+    ;
+    async getConsumptionChart(meterNumber, range = "weekly") {
+        try {
+            if (!meterNumber)
+                throw new common_1.BadRequestException("Meter number is required");
+            const details = await this.ice.detailsMeter(meterNumber);
+            const detailsMeterPayload = details?.ack?.ResponseMessage?.Payload?.["m:DetailsMeter"];
+            if (!detailsMeterPayload) {
+                throw new common_1.NotFoundException("No DetailsMeter payload returned");
+            }
+            let profileName = "";
+            switch (range) {
+                case "daily":
+                    profileName = "Daily billing profile";
+                    break;
+                case "weekly":
+                    profileName = "Load Profile 1";
+                    break;
+                case "monthly":
+                    profileName = "Monthly billing profile";
+                    break;
+                case "yearly":
+                    profileName = "Import Active Energy Last 1 Month";
+                    break;
+                default:
+                    profileName = "Daily billing profile";
+            }
+            const obis = this.ice.extractObis(details, profileName);
+            if (!obis)
+                throw new common_1.NotFoundException(`OBIS not found for ${profileName}`);
+            const raw = await this.ice.readData(meterNumber, obis["m:dTypeID"]);
+            const values = raw?.ack?.ResponseMessage?.Payload?.value ?? [];
+            const chart = Array.isArray(values)
+                ? values.map((v, i) => ({
+                    time: new Date(v.timestamp ?? Date.now() - (values.length - i) * 3600 * 1000),
+                    value: Number(v.value ?? 0),
+                }))
+                : [
+                    {
+                        time: new Date(),
+                        value: Number(values ?? 0),
+                    },
+                ];
+            return {
+                success: true,
+                message: "Meter consumption chart retrieved successfully",
+                data: {
+                    meterNumber,
+                    range,
+                    from: chart[0]?.time ?? new Date(),
+                    to: chart[chart.length - 1]?.time ?? new Date(),
+                    count: chart.length,
+                    chart,
+                },
+            };
+        }
+        catch (error) {
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async addMeter(dto) {

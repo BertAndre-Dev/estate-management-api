@@ -18,25 +18,37 @@ let RealtimeGateway = RealtimeGateway_1 = class RealtimeGateway {
     server;
     logger = new common_1.Logger(RealtimeGateway_1.name);
     afterInit() {
-        this.logger.log('Realtime Gateway Initialized');
+        this.logger.log('⚡ Realtime Gateway Initialized');
     }
     handleConnection(client) {
-        this.logger.log(`Client connected: ${client.id}`);
+        this.logger.log(`🟢 Client connected → ${client.id}`);
     }
     handleDisconnect(client) {
-        this.logger.log(`Client disconnected: ${client.id}`);
+        this.logger.log(`🔴 Client disconnected → ${client.id}`);
     }
     publishMeterReading(data) {
-        this.server.emit('meter.reading', data);
-    }
-    publishDiagnostics(data) {
-        this.server.emit('meter.diagnostics', data);
+        this.server.emit('meter.reading', {
+            ...data,
+            timestamp: data.timestamp || new Date(),
+        });
     }
     publishBalance(data) {
-        this.server.emit('meter.balance', data);
+        this.server.emit('meter.balance', {
+            ...data,
+            timestamp: data.timestamp || new Date(),
+        });
+    }
+    publishDiagnostics(data) {
+        this.server.emit('meter.diagnostics', {
+            ...data,
+            timestamp: data.timestamp || new Date(),
+        });
     }
     publishEvent(event) {
-        this.server.emit('meter.event', event);
+        this.server.emit('meter.event', {
+            ...event,
+            timestamp: event.timestamp || new Date(),
+        });
     }
 };
 exports.RealtimeGateway = RealtimeGateway;
@@ -46,9 +58,7 @@ __decorate([
 ], RealtimeGateway.prototype, "server", void 0);
 exports.RealtimeGateway = RealtimeGateway = RealtimeGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
-        cors: {
-            origin: '*',
-        },
+        cors: { origin: '*' },
     })
 ], RealtimeGateway);
 //# sourceMappingURL=real-time.gateway.js.map

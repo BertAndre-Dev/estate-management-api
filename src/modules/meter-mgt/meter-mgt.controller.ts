@@ -20,6 +20,7 @@ import { Role } from 'src/common/enum/roles.enum';
 import { v4 as uuid } from 'uuid';
 import { DisconnectMeterDto } from 'src/dto/iec-dto/disconnect-meter.dto';
 import { ReconnectMeterDto } from 'src/dto/iec-dto/reconnect-meter.dto';
+import { MeterReadingDto } from 'src/dto/meter-reading.dto';
 
 @ApiTags('Meter Management')
 @ApiBearerAuth('access-token')
@@ -77,20 +78,6 @@ export class MeterMgtController {
     return this.meterMgtService.updateMeter(id, dto);
   }
 
-  // 🔌 Toggle meter active/inactive
-  // @Put(':meterNumber/status')
-  // @Roles(Role.SUPERADMIN, Role.ADMIN)
-  // @ApiOperation({ summary: 'Activate or deactivate a meter (auto disconnect/reconnect)' })
-  // @ApiParam({ name: 'meterNumber', description: 'Unique meter number', example: '01123456789' })
-  // @ApiQuery({ name: 'isActive', required: true, example: true })
-  // @ApiResponse({ status: 200, description: 'Meter status updated successfully' })
-  // async toggleMeterStatus(
-  //   @Param('meterNumber') meterNumber: string,
-  //   @Query('isActive') isActive: string,
-  // ) {
-  //   const active = isActive === 'true';
-  //   return this.meterMgtService.toggleMeterStatus(meterNumber, active);
-  // }
 
   // 🔍 Get single meter by ID
   @Get(':id')
@@ -128,6 +115,50 @@ export class MeterMgtController {
   ) {
     return this.meterMgtService.getMetersByEstateId(estateId, Number(page), Number(limit));
   }
+
+
+  // 📡 REAL-TIME READING (GET)
+  @Get("realtime/reading/:meterNumber")
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT)
+  @ApiOperation({
+    summary: "Get the realtime reading (energy, consumption, balance)",
+  })
+  @ApiParam({ name: 'meterNumber', description: 'Meter Number', example: '0261231291954' })
+  async getRealtimeReading(@Param('meterNumber') meterNumber: string) {
+    return this.meterMgtService.getRealtimeReading(meterNumber);
+  }
+
+
+  // ⚡ REAL-TIME BALANCE (GET)
+  @Get("realtime/balance/:meterNumber")
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT)
+  @ApiOperation({
+    summary: "Get the realtime balance (kwh)",
+  })
+  @ApiParam({ name: 'meterNumber', description: 'Meter Number', example: '0261231291954' })
+  async getRealtimeBalance(@Param('meterNumber') meterNumber: string) {
+    return this.meterMgtService.getRealtimeBalance(meterNumber);
+  }
+
+
+  // 📊 USAGE CHART (DAILY / WEEKLY / MONTHLY / YEARLY) — GET
+  @Get("chart/:meterNumber")
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT)
+  @ApiOperation({ summary: "Get consumption chart" })
+  @ApiParam({ name: 'meterNumber', description: 'Meter Number', example: '0261231291954' })
+  @ApiQuery({
+    name: "range",
+    enum: ["daily", "weekly", "monthly", "yearly"],
+    required: false,
+  })
+  async getConsumptionChart(
+    @Param("meterNumber") meterNumber: string,
+    @Query("range") range: "daily" | "weekly" | "monthly" | "yearly" = "weekly"
+  ) {
+    return this.meterMgtService.getConsumptionChart(meterNumber, range);
+  }
+
+
 
 
 

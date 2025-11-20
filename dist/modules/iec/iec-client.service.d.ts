@@ -67,4 +67,13 @@ export declare class IecClientService {
         raw: any;
         status: number;
     }>;
+    readData(meterNumber: string, dTypeID: string): Promise<{
+        noun: string;
+        messageId: string;
+        correlationId: string;
+        ack: null;
+        raw: any;
+        status: number;
+    }>;
+    extractObis(details: any, match: string): any;
 }

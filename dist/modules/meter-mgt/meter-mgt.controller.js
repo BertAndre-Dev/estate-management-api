@@ -54,6 +54,15 @@ let MeterMgtController = class MeterMgtController {
     async getMetersByEstate(estateId, page = 1, limit = 10) {
         return this.meterMgtService.getMetersByEstateId(estateId, Number(page), Number(limit));
     }
+    async getRealtimeReading(meterNumber) {
+        return this.meterMgtService.getRealtimeReading(meterNumber);
+    }
+    async getRealtimeBalance(meterNumber) {
+        return this.meterMgtService.getRealtimeBalance(meterNumber);
+    }
+    async getConsumptionChart(meterNumber, range = "weekly") {
+        return this.meterMgtService.getConsumptionChart(meterNumber, range);
+    }
     async trialVend(dto) {
         return this.meterMgtService.trialVend(dto);
     }
@@ -159,6 +168,46 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "getMetersByEstate", null);
+__decorate([
+    (0, common_1.Get)("realtime/reading/:meterNumber"),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get the realtime reading (energy, consumption, balance)",
+    }),
+    (0, swagger_1.ApiParam)({ name: 'meterNumber', description: 'Meter Number', example: '0261231291954' }),
+    __param(0, (0, common_1.Param)('meterNumber')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], MeterMgtController.prototype, "getRealtimeReading", null);
+__decorate([
+    (0, common_1.Get)("realtime/balance/:meterNumber"),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get the realtime balance (kwh)",
+    }),
+    (0, swagger_1.ApiParam)({ name: 'meterNumber', description: 'Meter Number', example: '0261231291954' }),
+    __param(0, (0, common_1.Param)('meterNumber')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], MeterMgtController.prototype, "getRealtimeBalance", null);
+__decorate([
+    (0, common_1.Get)("chart/:meterNumber"),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({ summary: "Get consumption chart" }),
+    (0, swagger_1.ApiParam)({ name: 'meterNumber', description: 'Meter Number', example: '0261231291954' }),
+    (0, swagger_1.ApiQuery)({
+        name: "range",
+        enum: ["daily", "weekly", "monthly", "yearly"],
+        required: false,
+    }),
+    __param(0, (0, common_1.Param)("meterNumber")),
+    __param(1, (0, common_1.Query)("range")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], MeterMgtController.prototype, "getConsumptionChart", null);
 __decorate([
     (0, common_1.Post)('vend/trial'),
     (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),

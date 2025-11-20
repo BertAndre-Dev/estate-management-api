@@ -222,6 +222,21 @@ let IecClientService = IecClientService_1 = class IecClientService {
         };
         return this.postRequest('DetailsMeter', payload, token);
     }
+    ;
+    async readData(meterNumber, dTypeID) {
+        const token = await this.getToken();
+        const payload = {
+            "m:ReadData": {
+                "m:mRID": meterNumber,
+                "m:dTypeID": dTypeID,
+            },
+        };
+        return this.postRequest("ReadData", payload, token);
+    }
+    extractObis(details, match) {
+        const types = details.ack.ResponseMessage.Payload["m:DetailsMeter"]["m:dataTypes"]["m:dataType"];
+        return types.find(t => t["m:dTypeName"].toLowerCase().includes(match.toLowerCase()));
+    }
 };
 exports.IecClientService = IecClientService;
 exports.IecClientService = IecClientService = IecClientService_1 = __decorate([

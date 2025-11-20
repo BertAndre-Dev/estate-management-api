@@ -1,3 +1,4 @@
+// src/realtime/realtime.gateway.ts
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -9,9 +10,7 @@ import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
-  cors: {
-    origin: '*',
-  },
+  cors: { origin: '*' },
 })
 export class RealtimeGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -19,37 +18,90 @@ export class RealtimeGateway
   @WebSocketServer()
   server: Server;
 
-  private logger = new Logger(RealtimeGateway.name);
+  private readonly logger = new Logger(RealtimeGateway.name);
 
   afterInit() {
-    this.logger.log('Realtime Gateway Initialized');
+    this.logger.log('⚡ Realtime Gateway Initialized');
   }
 
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    this.logger.log(`🟢 Client connected → ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+    this.logger.log(`🔴 Client disconnected → ${client.id}`);
   }
 
-  // 🔥 Emit new readings to clients
-  publishMeterReading(data: any) {
-    this.server.emit('meter.reading', data);
+  // ===========================================
+  // 🔥 REALTIME METER READING (energy, power…)
+  // ===========================================
+  publishMeterReading(data: {
+    meterNumber: string;
+    energy?: number;
+    instantaneousPower?: number;
+    voltageL1?: number;
+    voltageL2?: number;
+    voltageL3?: number;
+    currentL1?: number;
+    currentL2?: number;
+    currentL3?: number;
+    timestamp?: string | Date;
+  }) {
+    this.server.emit('meter.reading', {
+      ...data,
+      timestamp: data.timestamp || new Date(),
+    });
   }
 
-  // 🔥 Emit diagnostics (voltage, current, power factor)
-  publishDiagnostics(data: any) {
-    this.server.emit('meter.diagnostics', data);
+  // ===========================================
+  // ⚡ REALTIME BALANCE / CREDIT
+  // ===========================================
+  publishBalance(data: {
+    meterNumber: string;
+    balance: number;
+    used?: number;
+    lastTokenAmount?: number;
+    timestamp?: string | Date;
+  }) {
+    this.server.emit('meter.balance', {
+      ...data,
+      timestamp: data.timestamp || new Date(),
+    });
   }
 
-  // 🔥 Emit balance / credit updates
-  publishBalance(data: any) {
-    this.server.emit('meter.balance', data);
+  // ===========================================
+  // 🔍 Diagnostics (Voltage, Current, PF)
+  // ===========================================
+  publishDiagnostics(data: {
+    meterNumber: string;
+    voltageL1?: number;
+    voltageL2?: number;
+    voltageL3?: number;
+    currentL1?: number;
+    currentL2?: number;
+    currentL3?: number;
+    powerFactor?: number;
+    timestamp?: string | Date;
+  }) {
+    this.server.emit('meter.diagnostics', {
+      ...data,
+      timestamp: data.timestamp || new Date(),
+    });
   }
 
-  // 🔥 Emit events (token used, overload, phase failure)
-  publishEvent(event: any) {
-    this.server.emit('meter.event', event);
+  // ===========================================
+  // 🚨 Meter Events (token used, overload…)
+  // ===========================================
+  publishEvent(event: {
+    meterNumber: string;
+    type: string;
+    description?: string;
+    timestamp?: string | Date;
+    raw?: any;
+  }) {
+    this.server.emit('meter.event', {
+      ...event,
+      timestamp: event.timestamp || new Date(),
+    });
   }
 }
