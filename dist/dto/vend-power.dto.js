@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,38 +8,41 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { IsString, IsNumber, IsNotEmpty } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
-export class VendPowerDto {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.VendPowerDto = void 0;
+const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
+class VendPowerDto {
     meterNumber;
     amount;
     walletId;
 }
+exports.VendPowerDto = VendPowerDto;
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         description: 'meter number',
         example: '233302022',
     }),
-    IsString(),
-    IsNotEmpty(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], VendPowerDto.prototype, "meterNumber", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         description: 'amount to vend',
         example: 1000,
     }),
-    IsNotEmpty(),
-    IsNumber(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], VendPowerDto.prototype, "amount", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         description: 'The wallet ID to which this transaction belongs',
         example: '64d3b91e793c420f841f2f1a',
     }),
-    IsString(),
-    IsNotEmpty(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], VendPowerDto.prototype, "walletId", void 0);
 //# sourceMappingURL=vend-power.dto.js.map

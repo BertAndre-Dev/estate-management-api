@@ -1,4 +1,7 @@
-export const payoutConfig = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.payoutConfig = void 0;
+exports.payoutConfig = {
     serviceCharge: [
         { bank: '044', account: '0123456789', percentage: 60 },
         { bank: '058', account: '0987654321', percentage: 40 },

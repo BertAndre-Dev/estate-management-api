@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,28 +8,31 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
-export class VerifyOtpDto {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.VerifyOtpDto = void 0;
+const swagger_1 = require("@nestjs/swagger");
+const class_validator_1 = require("class-validator");
+class VerifyOtpDto {
     email;
     otp;
 }
+exports.VerifyOtpDto = VerifyOtpDto;
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: 'user@example.com',
         description: 'The email of the user to verify',
     }),
-    IsEmail(),
-    IsNotEmpty(),
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "email", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: '123456',
         description: 'The OTP sent to the user email for verification',
     }),
-    IsString(),
-    IsNotEmpty(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "otp", void 0);
 //# sourceMappingURL=verify-otp.dto.js.map

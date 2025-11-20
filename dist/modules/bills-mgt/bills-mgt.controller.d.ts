@@ -13,8 +13,8 @@ export declare class BillsMgtController {
         success: boolean;
         message: string;
         data: {
-            bill: import("mongoose").Document<unknown, {}, import("../../schema/bill-mgt/bill.schema").BillDocument, {}, {}> & import("../../schema/bill-mgt/bill.schema").Bill & import("mongoose").Document<unknown, any, any, Record<string, any>, {}> & Required<{
-                _id: unknown;
+            bill: import("mongoose").Document<unknown, {}, import("../../schema/bill-mgt/bill.schema").BillDocument, {}, {}> & import("../../schema/bill-mgt/bill.schema").Bill & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+                _id: import("mongoose").Types.ObjectId;
             }> & {
                 __v: number;
             };
@@ -39,7 +39,7 @@ export declare class BillsMgtController {
         success: boolean;
         message: string;
         data: {
-            _id: unknown;
+            _id: import("mongoose").Types.ObjectId;
             userId: string;
             billId: string;
             billName: string;

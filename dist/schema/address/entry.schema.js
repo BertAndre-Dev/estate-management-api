@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,37 +8,39 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { SchemaTypes } from "mongoose";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.EntrySchema = exports.Entry = void 0;
+const mongoose_1 = require("@nestjs/mongoose");
+const mongoose_2 = require("mongoose");
 let Entry = class Entry {
     estateId;
     fieldId;
     data;
 };
+exports.Entry = Entry;
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         required: true
     }),
     __metadata("design:type", String)
 ], Entry.prototype, "estateId", void 0);
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         required: true
     }),
     __metadata("design:type", String)
 ], Entry.prototype, "fieldId", void 0);
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         type: Map,
-        of: SchemaTypes.Mixed
+        of: mongoose_2.SchemaTypes.Mixed
     }),
     __metadata("design:type", Map)
 ], Entry.prototype, "data", void 0);
-Entry = __decorate([
-    Schema({
+exports.Entry = Entry = __decorate([
+    (0, mongoose_1.Schema)({
         timestamps: true
     })
 ], Entry);
-export { Entry };
-export const EntrySchema = SchemaFactory.createForClass(Entry);
+exports.EntrySchema = mongoose_1.SchemaFactory.createForClass(Entry);
 //# sourceMappingURL=entry.schema.js.map

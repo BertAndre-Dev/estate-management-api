@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,20 +8,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
-export class GetMeterReadingsDto {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GetMeterReadingsDto = void 0;
+const swagger_1 = require("@nestjs/swagger");
+const class_validator_1 = require("class-validator");
+class GetMeterReadingsDto {
     meterNumber;
     obis;
 }
+exports.GetMeterReadingsDto = GetMeterReadingsDto;
 __decorate([
-    ApiProperty({ example: '00123456789', description: 'Meter number (mRID)' }),
-    IsString(),
+    (0, swagger_1.ApiProperty)({ example: '00123456789', description: 'Meter number (mRID)' }),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], GetMeterReadingsDto.prototype, "meterNumber", void 0);
 __decorate([
-    ApiProperty({ example: '1.8.0', description: 'OBIS code for the reading type' }),
-    IsString(),
+    (0, swagger_1.ApiProperty)({ example: '1.8.0', description: 'OBIS code for the reading type' }),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], GetMeterReadingsDto.prototype, "obis", void 0);
 //# sourceMappingURL=get-meter-readings.dto.js.map

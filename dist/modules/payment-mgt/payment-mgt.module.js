@@ -1,20 +1,23 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-import { Module } from '@nestjs/common';
-import { PaymentMgtService } from './payment-mgt.service';
-import { PaymentMgtController } from './payment-mgt.controller';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PaymentMgtModule = void 0;
+const common_1 = require("@nestjs/common");
+const payment_mgt_service_1 = require("./payment-mgt.service");
+const payment_mgt_controller_1 = require("./payment-mgt.controller");
 let PaymentMgtModule = class PaymentMgtModule {
 };
-PaymentMgtModule = __decorate([
-    Module({
-        providers: [PaymentMgtService],
-        controllers: [PaymentMgtController],
-        exports: [PaymentMgtService]
+exports.PaymentMgtModule = PaymentMgtModule;
+exports.PaymentMgtModule = PaymentMgtModule = __decorate([
+    (0, common_1.Module)({
+        providers: [payment_mgt_service_1.PaymentMgtService],
+        controllers: [payment_mgt_controller_1.PaymentMgtController],
+        exports: [payment_mgt_service_1.PaymentMgtService]
     })
 ], PaymentMgtModule);
-export { PaymentMgtModule };
 //# sourceMappingURL=payment-mgt.module.js.map

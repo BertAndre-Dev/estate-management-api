@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,14 +8,16 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-export var PaymentStatus;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TransactionSchema = exports.Transaction = exports.PaymentStatus = void 0;
+const mongoose_1 = require("@nestjs/mongoose");
+var PaymentStatus;
 (function (PaymentStatus) {
     PaymentStatus["NOTPAID"] = "not-paid";
     PaymentStatus["PENDING"] = "pending";
     PaymentStatus["PAID"] = "paid";
     PaymentStatus["FAILED"] = "failed";
-})(PaymentStatus || (PaymentStatus = {}));
+})(PaymentStatus || (exports.PaymentStatus = PaymentStatus = {}));
 let Transaction = class Transaction {
     walletId;
     type;
@@ -23,27 +26,28 @@ let Transaction = class Transaction {
     tx_ref;
     description;
 };
+exports.Transaction = Transaction;
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         required: true
     }),
     __metadata("design:type", String)
 ], Transaction.prototype, "walletId", void 0);
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         required: true,
         enum: ['credit', 'debit']
     }),
     __metadata("design:type", String)
 ], Transaction.prototype, "type", void 0);
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         required: true
     }),
     __metadata("design:type", Number)
 ], Transaction.prototype, "amount", void 0);
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         enum: PaymentStatus,
         default: PaymentStatus.NOTPAID,
         required: true,
@@ -51,7 +55,7 @@ __decorate([
     __metadata("design:type", String)
 ], Transaction.prototype, "paymentStatus", void 0);
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         type: String,
         required: true,
         unique: true
@@ -59,14 +63,13 @@ __decorate([
     __metadata("design:type", String)
 ], Transaction.prototype, "tx_ref", void 0);
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], Transaction.prototype, "description", void 0);
-Transaction = __decorate([
-    Schema({
+exports.Transaction = Transaction = __decorate([
+    (0, mongoose_1.Schema)({
         timestamps: true
     })
 ], Transaction);
-export { Transaction };
-export const TransactionSchema = SchemaFactory.createForClass(Transaction);
+exports.TransactionSchema = mongoose_1.SchemaFactory.createForClass(Transaction);
 //# sourceMappingURL=transaction.schema.js.map

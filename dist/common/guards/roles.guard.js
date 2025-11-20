@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,8 +8,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { ForbiddenException, Injectable } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RoleGuard = void 0;
+const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
 let RoleGuard = class RoleGuard {
     reflector;
     constructor(reflector) {
@@ -21,20 +24,20 @@ let RoleGuard = class RoleGuard {
         }
         const { user } = context.switchToHttp().getRequest();
         if (!user) {
-            throw new ForbiddenException('User not authenticated');
+            throw new common_1.ForbiddenException('User not authenticated');
         }
         if (!user.role) {
-            throw new ForbiddenException('User role not defined');
+            throw new common_1.ForbiddenException('User role not defined');
         }
         if (!requiredRoles.includes(user.role)) {
-            throw new ForbiddenException('Access denied: insufficient permissions');
+            throw new common_1.ForbiddenException('Access denied: insufficient permissions');
         }
         return true;
     }
 };
-RoleGuard = __decorate([
-    Injectable(),
-    __metadata("design:paramtypes", [Reflector])
+exports.RoleGuard = RoleGuard;
+exports.RoleGuard = RoleGuard = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [core_1.Reflector])
 ], RoleGuard);
-export { RoleGuard };
 //# sourceMappingURL=roles.guard.js.map

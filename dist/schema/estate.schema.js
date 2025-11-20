@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,7 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.EstateSchema = exports.Estate = void 0;
+const mongoose_1 = require("@nestjs/mongoose");
 let Estate = class Estate {
     name;
     address;
@@ -16,8 +19,9 @@ let Estate = class Estate {
     country;
     isActive;
 };
+exports.Estate = Estate;
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         required: true,
         trim: true,
         lowercase: true,
@@ -25,33 +29,32 @@ __decorate([
     __metadata("design:type", String)
 ], Estate.prototype, "name", void 0);
 __decorate([
-    Prop({ trim: true }),
+    (0, mongoose_1.Prop)({ trim: true }),
     __metadata("design:type", String)
 ], Estate.prototype, "address", void 0);
 __decorate([
-    Prop({ trim: true }),
+    (0, mongoose_1.Prop)({ trim: true }),
     __metadata("design:type", String)
 ], Estate.prototype, "city", void 0);
 __decorate([
-    Prop({ trim: true }),
+    (0, mongoose_1.Prop)({ trim: true }),
     __metadata("design:type", String)
 ], Estate.prototype, "state", void 0);
 __decorate([
-    Prop({ trim: true }),
+    (0, mongoose_1.Prop)({ trim: true }),
     __metadata("design:type", String)
 ], Estate.prototype, "country", void 0);
 __decorate([
-    Prop({ default: true }),
+    (0, mongoose_1.Prop)({ default: true }),
     __metadata("design:type", Boolean)
 ], Estate.prototype, "isActive", void 0);
-Estate = __decorate([
-    Schema({
+exports.Estate = Estate = __decorate([
+    (0, mongoose_1.Schema)({
         timestamps: true,
     })
 ], Estate);
-export { Estate };
-export const EstateSchema = SchemaFactory.createForClass(Estate);
-EstateSchema.pre('save', function (next) {
+exports.EstateSchema = mongoose_1.SchemaFactory.createForClass(Estate);
+exports.EstateSchema.pre('save', function (next) {
     if (this.name)
         this.name = this.name.toLowerCase().trim();
     if (this.address)

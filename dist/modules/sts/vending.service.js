@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -11,21 +12,23 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var VendingService_1;
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { SignatureUtil } from "../../common/utils/signature.utils";
-import { AuthService } from './auth.service';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Transaction } from "../../schema/sts/transactions.schema";
-import { v4 as uuid } from 'uuid';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.VendingService = void 0;
+const common_1 = require("@nestjs/common");
+const axios_1 = require("@nestjs/axios");
+const rxjs_1 = require("rxjs");
+const signature_utils_1 = require("../../common/utils/signature.utils");
+const auth_service_1 = require("./auth.service");
+const mongoose_1 = require("@nestjs/mongoose");
+const mongoose_2 = require("mongoose");
+const transactions_schema_1 = require("../../schema/sts/transactions.schema");
+const uuid_1 = require("uuid");
 let VendingService = VendingService_1 = class VendingService {
     http;
     authService;
     txModel;
     baseUrl = process.env.STS_API_URL;
-    logger = new Logger(VendingService_1.name);
+    logger = new common_1.Logger(VendingService_1.name);
     creds = {
         clientId: process.env.STS_CLIENT_ID ?? '',
         terminalId: process.env.STS_TERMINAL_ID ?? '',
@@ -43,8 +46,8 @@ let VendingService = VendingService_1 = class VendingService {
         try {
             const token = await this.authService.getAuthToken();
             const seed = this.generateSeed();
-            const transId = uuid().replace(/-/g, '').slice(0, 16);
-            const derivedKey = SignatureUtil.deriveKey(this.creds.user, this.creds.password, this.creds.userKey, seed);
+            const transId = (0, uuid_1.v4)().replace(/-/g, '').slice(0, 16);
+            const derivedKey = signature_utils_1.SignatureUtil.deriveKey(this.creds.user, this.creds.password, this.creds.userKey, seed);
             const payload = {
                 version: '1',
                 clientId: this.creds.clientId,
@@ -59,11 +62,11 @@ let VendingService = VendingService_1 = class VendingService {
                 payType: this.creds.payType,
                 amountType: 0,
             };
-            const sign = SignatureUtil.generateSignature(payload, derivedKey);
+            const sign = signature_utils_1.SignatureUtil.generateSignature(payload, derivedKey);
             const body = { ...payload, sign, signType: 'MD5' };
             this.logger.debug('🧾 Vending Payload:', JSON.stringify(body, null, 2));
             this.logger.debug(`🌍 API Endpoint: ${this.baseUrl}/creditVend`);
-            const { data } = await firstValueFrom(this.http.post(`${this.baseUrl}/creditVend`, body));
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/creditVend`, body));
             this.logger.debug('📦 Vending Response:', JSON.stringify(data, null, 2));
             await this.txModel.create({
                 meterNumber: dto.meterNumber,
@@ -74,7 +77,7 @@ let VendingService = VendingService_1 = class VendingService {
                 status: data.state === 0 ? 'success' : 'failed',
             });
             if (data.state !== 0) {
-                throw new BadRequestException(data.message || 'Vending failed.');
+                throw new common_1.BadRequestException(data.message || 'Vending failed.');
             }
             return {
                 success: true,
@@ -84,7 +87,7 @@ let VendingService = VendingService_1 = class VendingService {
         }
         catch (error) {
             this.logger.error(`Vend error: ${error.message}`);
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     generateSeed() {
@@ -101,12 +104,12 @@ let VendingService = VendingService_1 = class VendingService {
         return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
 };
-VendingService = VendingService_1 = __decorate([
-    Injectable(),
-    __param(2, InjectModel(Transaction.name)),
-    __metadata("design:paramtypes", [HttpService,
-        AuthService,
-        Model])
+exports.VendingService = VendingService;
+exports.VendingService = VendingService = VendingService_1 = __decorate([
+    (0, common_1.Injectable)(),
+    __param(2, (0, mongoose_1.InjectModel)(transactions_schema_1.Transaction.name)),
+    __metadata("design:paramtypes", [axios_1.HttpService,
+        auth_service_1.AuthService,
+        mongoose_2.Model])
 ], VendingService);
-export { VendingService };
 //# sourceMappingURL=vending.service.js.map

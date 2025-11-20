@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,8 +8,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { PendingRequstType } from "../../common/enum/pending-request.enum";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PendingRequestSchema = exports.PendingRequest = void 0;
+const mongoose_1 = require("@nestjs/mongoose");
+const pending_request_enum_1 = require("../../common/enum/pending-request.enum");
 let PendingRequest = class PendingRequest {
     messageId;
     noun;
@@ -17,36 +20,36 @@ let PendingRequest = class PendingRequest {
     correlationId;
     replyAddress;
 };
+exports.PendingRequest = PendingRequest;
 __decorate([
-    Prop({ required: true, unique: true }),
+    (0, mongoose_1.Prop)({ required: true, unique: true }),
     __metadata("design:type", String)
 ], PendingRequest.prototype, "messageId", void 0);
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], PendingRequest.prototype, "noun", void 0);
 __decorate([
-    Prop({ type: Object, default: {} }),
+    (0, mongoose_1.Prop)({ type: Object, default: {} }),
     __metadata("design:type", Object)
 ], PendingRequest.prototype, "payload", void 0);
 __decorate([
-    Prop({
-        enum: PendingRequstType.PENDING,
-        default: PendingRequstType.PENDING,
+    (0, mongoose_1.Prop)({
+        enum: pending_request_enum_1.PendingRequstType.PENDING,
+        default: pending_request_enum_1.PendingRequstType.PENDING,
     }),
     __metadata("design:type", String)
 ], PendingRequest.prototype, "status", void 0);
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], PendingRequest.prototype, "correlationId", void 0);
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], PendingRequest.prototype, "replyAddress", void 0);
-PendingRequest = __decorate([
-    Schema({ timestamps: true })
+exports.PendingRequest = PendingRequest = __decorate([
+    (0, mongoose_1.Schema)({ timestamps: true })
 ], PendingRequest);
-export { PendingRequest };
-export const PendingRequestSchema = SchemaFactory.createForClass(PendingRequest);
+exports.PendingRequestSchema = mongoose_1.SchemaFactory.createForClass(PendingRequest);
 //# sourceMappingURL=pending-request.schema.js.map

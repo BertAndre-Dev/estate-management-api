@@ -1,5 +1,8 @@
-import * as crypto from 'crypto';
-export class SignatureUtil {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SignatureUtil = void 0;
+const crypto = require("crypto");
+class SignatureUtil {
     static md5(value) {
         return crypto.createHash('md5').update(value, 'utf8').digest('hex').toLowerCase();
     }
@@ -37,4 +40,5 @@ export class SignatureUtil {
         return signature;
     }
 }
+exports.SignatureUtil = SignatureUtil;
 //# sourceMappingURL=signature.utils.js.map

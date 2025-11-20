@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,12 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-import { Injectable, ForbiddenException } from '@nestjs/common';
-import { Role } from '../enum/roles.enum';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { User } from "../../schema/user.schema";
-import { Bill } from "../../schema/bill-mgt/bill.schema";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ServiceChargeGuard = void 0;
+const common_1 = require("@nestjs/common");
+const roles_enum_1 = require("../enum/roles.enum");
+const mongoose_1 = require("@nestjs/mongoose");
+const mongoose_2 = require("mongoose");
+const user_schema_1 = require("../../schema/user.schema");
+const bill_schema_1 = require("../../schema/bill-mgt/bill.schema");
 let ServiceChargeGuard = class ServiceChargeGuard {
     userModel;
     billModel;
@@ -27,8 +30,8 @@ let ServiceChargeGuard = class ServiceChargeGuard {
         const req = context.switchToHttp().getRequest();
         const user = await this.userModel.findById(req.user?.id);
         if (!user)
-            throw new ForbiddenException('User not found.');
-        if (user.role !== Role.RESIDENT)
+            throw new common_1.ForbiddenException('User not found.');
+        if (user.role !== roles_enum_1.Role.RESIDENT)
             return true;
         if (user.serviceCharge === true)
             return true;
@@ -37,18 +40,18 @@ let ServiceChargeGuard = class ServiceChargeGuard {
             return true;
         const bill = await this.billModel.findById(billId);
         if (!bill)
-            throw new ForbiddenException('Bill not found.');
+            throw new common_1.ForbiddenException('Bill not found.');
         if (bill.isServiceCharge === true)
             return true;
-        throw new ForbiddenException('You must pay your service charge before paying for other bills.');
+        throw new common_1.ForbiddenException('You must pay your service charge before paying for other bills.');
     }
 };
-ServiceChargeGuard = __decorate([
-    Injectable(),
-    __param(0, InjectModel(User.name)),
-    __param(1, InjectModel(Bill.name)),
-    __metadata("design:paramtypes", [Model,
-        Model])
+exports.ServiceChargeGuard = ServiceChargeGuard;
+exports.ServiceChargeGuard = ServiceChargeGuard = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
+    __param(1, (0, mongoose_1.InjectModel)(bill_schema_1.Bill.name)),
+    __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model])
 ], ServiceChargeGuard);
-export { ServiceChargeGuard };
 //# sourceMappingURL=service-charge.guard.js.map

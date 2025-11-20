@@ -17,8 +17,8 @@ export declare class TransactionMgtService {
     verifyTransaction(tx_ref: string, paymentType: PaymentType): Promise<{
         success: boolean;
         message: string;
-        data: import("mongoose").Document<unknown, {}, TransactionDocument, {}, {}> & Transaction & import("mongoose").Document<unknown, any, any, Record<string, any>, {}> & Required<{
-            _id: unknown;
+        data: import("mongoose").Document<unknown, {}, TransactionDocument, {}, {}> & Transaction & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+            _id: import("mongoose").Types.ObjectId;
         }> & {
             __v: number;
         };

@@ -28,8 +28,8 @@ export declare class TransactionMgtController {
     verifyTransaction(tx_ref: string, paymentType: PaymentType): Promise<{
         success: boolean;
         message: string;
-        data: import("mongoose").Document<unknown, {}, import("../../schema/transaction.schema").TransactionDocument, {}, {}> & import("../../schema/transaction.schema").Transaction & import("mongoose").Document<unknown, any, any, Record<string, any>, {}> & Required<{
-            _id: unknown;
+        data: import("mongoose").Document<unknown, {}, import("../../schema/transaction.schema").TransactionDocument, {}, {}> & import("../../schema/transaction.schema").Transaction & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+            _id: import("mongoose").Types.ObjectId;
         }> & {
             __v: number;
         };

@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,18 +11,20 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { InjectModel } from "@nestjs/mongoose";
-import { PassportStrategy } from "@nestjs/passport";
-import { ExtractJwt, Strategy } from "passport-jwt";
-import { Model } from "mongoose";
-import { User } from "../../schema/user.schema";
-let JwtStrategy = class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.JwtStrategy = void 0;
+const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
+const mongoose_1 = require("@nestjs/mongoose");
+const passport_1 = require("@nestjs/passport");
+const passport_jwt_1 = require("passport-jwt");
+const mongoose_2 = require("mongoose");
+const user_schema_1 = require("../../schema/user.schema");
+let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, "jwt") {
     userModel;
     constructor(config, userModel) {
         super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
             secretOrKey: config.get("JWT_SECRET"),
         });
         this.userModel = userModel;
@@ -30,19 +33,19 @@ let JwtStrategy = class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
         const { sub: userId, role } = payload;
         const user = await this.userModel.findById(userId);
         if (!user) {
-            throw new UnauthorizedException("User not found");
+            throw new common_1.UnauthorizedException("User not found");
         }
         if (role && user.role !== role) {
-            throw new UnauthorizedException("Invalid user role");
+            throw new common_1.UnauthorizedException("Invalid user role");
         }
         return user;
     }
 };
-JwtStrategy = __decorate([
-    Injectable(),
-    __param(1, InjectModel(User.name)),
-    __metadata("design:paramtypes", [ConfigService,
-        Model])
+exports.JwtStrategy = JwtStrategy;
+exports.JwtStrategy = JwtStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __param(1, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
+    __metadata("design:paramtypes", [config_1.ConfigService,
+        mongoose_2.Model])
 ], JwtStrategy);
-export { JwtStrategy };
 //# sourceMappingURL=jwt.strategy.js.map

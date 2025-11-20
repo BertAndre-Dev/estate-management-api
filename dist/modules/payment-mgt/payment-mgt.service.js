@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,14 +9,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var PaymentMgtService_1;
-import { Injectable, InternalServerErrorException, Logger, HttpStatus, HttpException } from '@nestjs/common';
-import axios from 'axios';
-import { ConfigService } from '@nestjs/config';
-import { payoutConfig } from './payout-config';
-import { PaymentType } from "../../common/enum/payment-type.enum";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PaymentMgtService = void 0;
+const common_1 = require("@nestjs/common");
+const axios_1 = require("axios");
+const config_1 = require("@nestjs/config");
+const payout_config_1 = require("./payout-config");
+const payment_type_enum_1 = require("../../common/enum/payment-type.enum");
 let PaymentMgtService = PaymentMgtService_1 = class PaymentMgtService {
     config;
-    logger = new Logger(PaymentMgtService_1.name);
+    logger = new common_1.Logger(PaymentMgtService_1.name);
     baseUrl;
     secretKey;
     redirectBaseUrl;
@@ -44,7 +47,7 @@ let PaymentMgtService = PaymentMgtService_1 = class PaymentMgtService {
                 },
             };
             this.logger.debug('Payload being sent to Flutterwave:', payload);
-            const response = await axios.post(`${this.baseUrl}/payments`, payload, {
+            const response = await axios_1.default.post(`${this.baseUrl}/payments`, payload, {
                 headers: {
                     Authorization: `Bearer ${this.secretKey}`,
                     'Content-Type': 'application/json',
@@ -61,33 +64,33 @@ let PaymentMgtService = PaymentMgtService_1 = class PaymentMgtService {
                 status: error?.response?.status,
                 headers: error?.response?.headers,
             });
-            throw new InternalServerErrorException(error?.response?.data?.message || 'Unable to initialize payment. Try again later.');
+            throw new common_1.InternalServerErrorException(error?.response?.data?.message || 'Unable to initialize payment. Try again later.');
         }
     }
     async verifyPayment(tx_ref, paymentType) {
         try {
-            const response = await axios.get(`${this.baseUrl}/transactions/verify_by_reference?tx_ref=${tx_ref}`, {
+            const response = await axios_1.default.get(`${this.baseUrl}/transactions/verify_by_reference?tx_ref=${tx_ref}`, {
                 headers: { Authorization: `Bearer ${this.secretKey}` },
             });
             const transaction = response.data?.data;
             if (!transaction) {
-                throw new HttpException('Transaction not found', HttpStatus.NOT_FOUND);
+                throw new common_1.HttpException('Transaction not found', common_1.HttpStatus.NOT_FOUND);
             }
             if (transaction.status !== 'successful') {
                 return { status: 'pending', message: 'Payment not completed yet' };
             }
             const totalAmount = Number(transaction.amount);
             const currency = transaction.currency;
-            if (paymentType === PaymentType.FUND_WALLET) {
+            if (paymentType === payment_type_enum_1.PaymentType.FUND_WALLET) {
                 return {
                     status: 'success',
                     message: 'Payment verified (no payout required for wallet funding)',
                     totalAmount,
                 };
             }
-            const accounts = payoutConfig[paymentType];
+            const accounts = payout_config_1.payoutConfig[paymentType];
             if (!accounts || accounts.length === 0) {
-                throw new HttpException(`No payout config found for paymentType: ${paymentType}`, 400);
+                throw new common_1.HttpException(`No payout config found for paymentType: ${paymentType}`, 400);
             }
             for (const acct of accounts) {
                 const payoutAmount = (acct.percentage / 100) * totalAmount;
@@ -107,7 +110,7 @@ let PaymentMgtService = PaymentMgtService_1 = class PaymentMgtService {
             };
         }
         catch (error) {
-            throw new InternalServerErrorException(error?.response?.data?.message || 'Unable to verify payment.');
+            throw new common_1.InternalServerErrorException(error?.response?.data?.message || 'Unable to verify payment.');
         }
     }
     async initiatePayout(data) {
@@ -120,20 +123,20 @@ let PaymentMgtService = PaymentMgtService_1 = class PaymentMgtService {
                 narration: data.narration,
                 reference: `payout-${Date.now()}`,
             };
-            const response = await axios.post(`${this.baseUrl}/transfers`, payload, {
+            const response = await axios_1.default.post(`${this.baseUrl}/transfers`, payload, {
                 headers: {
                     Authorization: `Bearer ${this.secretKey}`,
                     'Content-Type': 'application/json',
                 },
             });
             if (response.data?.status !== 'success') {
-                throw new InternalServerErrorException(`Payout failed for account ${data.account}`);
+                throw new common_1.InternalServerErrorException(`Payout failed for account ${data.account}`);
             }
             return response.data;
         }
         catch (error) {
             this.logger.error('Payout Error', error?.response?.data || error.message);
-            throw new InternalServerErrorException('Unable to complete payout.');
+            throw new common_1.InternalServerErrorException('Unable to complete payout.');
         }
     }
     getPaymentOptionsByCountry(currency) {
@@ -297,9 +300,9 @@ let PaymentMgtService = PaymentMgtService_1 = class PaymentMgtService {
         return { country: upperCountry, currency, methods };
     }
 };
-PaymentMgtService = PaymentMgtService_1 = __decorate([
-    Injectable(),
-    __metadata("design:paramtypes", [ConfigService])
+exports.PaymentMgtService = PaymentMgtService;
+exports.PaymentMgtService = PaymentMgtService = PaymentMgtService_1 = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], PaymentMgtService);
-export { PaymentMgtService };
 //# sourceMappingURL=payment-mgt.service.js.map

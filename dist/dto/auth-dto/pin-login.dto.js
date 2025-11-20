@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,20 +8,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString } from 'class-validator';
-export class PinLoginDto {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PinLoginDto = void 0;
+const swagger_1 = require("@nestjs/swagger");
+const class_validator_1 = require("class-validator");
+class PinLoginDto {
     email;
     pin;
 }
+exports.PinLoginDto = PinLoginDto;
 __decorate([
-    ApiProperty({ example: 'researcher@example.com' }),
-    IsEmail(),
+    (0, swagger_1.ApiProperty)({ example: 'researcher@example.com' }),
+    (0, class_validator_1.IsEmail)(),
     __metadata("design:type", String)
 ], PinLoginDto.prototype, "email", void 0);
 __decorate([
-    ApiProperty({ example: '123456' }),
-    IsString(),
+    (0, swagger_1.ApiProperty)({ example: '123456' }),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], PinLoginDto.prototype, "pin", void 0);
 //# sourceMappingURL=pin-login.dto.js.map

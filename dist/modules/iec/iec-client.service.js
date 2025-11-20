@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -11,16 +12,18 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var IecClientService_1;
-import { Injectable, Logger } from '@nestjs/common';
-import axios from 'axios';
-import { buildRequestMessage, parseResponse } from "../../common/utils/iec-xml.utils";
-import { createHeader } from "../../common/utils/header.utils";
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { PendingRequest } from "../../schema/ice/pending-request.schema";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.IecClientService = void 0;
+const common_1 = require("@nestjs/common");
+const axios_1 = require("axios");
+const iec_xml_utils_1 = require("../../common/utils/iec-xml.utils");
+const header_utils_1 = require("../../common/utils/header.utils");
+const mongoose_1 = require("@nestjs/mongoose");
+const mongoose_2 = require("mongoose");
+const pending_request_schema_1 = require("../../schema/ice/pending-request.schema");
 let IecClientService = IecClientService_1 = class IecClientService {
     pendingModel;
-    logger = new Logger(IecClientService_1.name);
+    logger = new common_1.Logger(IecClientService_1.name);
     baseUrl = `${process.env.HES_BASE_URL}`;
     hesToken = null;
     hesTokenFetchedAt = 0;
@@ -58,14 +61,14 @@ let IecClientService = IecClientService_1 = class IecClientService {
     }
     async postRequest(noun, payload, authToken) {
         const verb = this.resolveVerb(noun);
-        const header = createHeader({
+        const header = (0, header_utils_1.createHeader)({
             verb,
             noun,
             asyncReply: verb === 'create',
             replyAddress: process.env.HES_CALLBACK_URL,
             authorization: authToken,
         });
-        const xml = buildRequestMessage(header)(payload);
+        const xml = (0, iec_xml_utils_1.buildRequestMessage)(header)(payload);
         this.logger.debug(`📤 Sending IEC XML → HES:\n${xml}`);
         await this.pendingModel.create({
             messageId: header.MessageID,
@@ -75,7 +78,7 @@ let IecClientService = IecClientService_1 = class IecClientService {
             correlationId: header.CorrelationID,
             replyAddress: header.ReplyAddress,
         });
-        const resp = await axios.post(this.baseUrl, xml, {
+        const resp = await axios_1.default.post(this.baseUrl, xml, {
             headers: {
                 'Content-Type': 'application/xml',
                 Accept: 'application/xml',
@@ -86,7 +89,7 @@ let IecClientService = IecClientService_1 = class IecClientService {
         this.logger.debug(`📥 HES Immediate Response (${resp.status}):\n${resp.data}`);
         let ack = null;
         try {
-            ack = parseResponse(resp.data);
+            ack = (0, iec_xml_utils_1.parseResponse)(resp.data);
         }
         catch {
             this.logger.warn('⚠ Could not parse ACK from HES');
@@ -220,10 +223,10 @@ let IecClientService = IecClientService_1 = class IecClientService {
         return this.postRequest('DetailsMeter', payload, token);
     }
 };
-IecClientService = IecClientService_1 = __decorate([
-    Injectable(),
-    __param(0, InjectModel(PendingRequest.name)),
-    __metadata("design:paramtypes", [Model])
+exports.IecClientService = IecClientService;
+exports.IecClientService = IecClientService = IecClientService_1 = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, mongoose_1.InjectModel)(pending_request_schema_1.PendingRequest.name)),
+    __metadata("design:paramtypes", [mongoose_2.Model])
 ], IecClientService);
-export { IecClientService };
 //# sourceMappingURL=iec-client.service.js.map

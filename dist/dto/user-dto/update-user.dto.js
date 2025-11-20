@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,10 +8,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { ApiProperty } from '@nestjs/swagger';
-import { MaxLength, MinLength, IsNotEmpty, IsString, IsOptional, IsEmail } from 'class-validator';
-import { Role } from "../../common/enum/roles.enum";
-export class UpdateUserDto {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UpdateUserDto = void 0;
+const swagger_1 = require("@nestjs/swagger");
+const class_validator_1 = require("class-validator");
+const roles_enum_1 = require("../../common/enum/roles.enum");
+class UpdateUserDto {
     firstName;
     lastName;
     email;
@@ -22,101 +25,102 @@ export class UpdateUserDto {
     role;
     image;
 }
+exports.UpdateUserDto = UpdateUserDto;
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: "Bill",
         description: "User first name"
     }),
-    IsString(),
-    IsNotEmpty(),
-    MinLength(2),
-    MaxLength(20),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(20),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "firstName", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: "Tola",
         description: "User last name"
     }),
-    IsString(),
-    IsNotEmpty(),
-    MinLength(2),
-    MaxLength(20),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(20),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "lastName", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: "user@email.com",
         description: "User email"
     }),
-    IsString(),
-    IsNotEmpty(),
-    IsEmail(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsEmail)(),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "email", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: '+234',
         description: 'User country code',
     }),
-    IsString(),
-    IsOptional(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "countryCode", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: '2025-03-01',
         description: 'User date of birth',
     }),
-    IsString(),
-    IsOptional(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "dateOfBirth", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: 'male | female',
         description: 'User gender',
     }),
-    IsString(),
-    IsOptional(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "gender", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: '8100001427',
         description: 'User phone number',
     }),
-    IsString(),
-    IsOptional(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "phoneNumber", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: 'apartment 4, blk 1',
         description: 'User phone number',
     }),
-    IsString(),
-    IsOptional(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "address", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: 'Resident',
         description: 'Role of the user',
-        enum: Role,
-        default: Role.RESIDENT,
+        enum: roles_enum_1.Role,
+        default: roles_enum_1.Role.RESIDENT,
     }),
-    IsString(),
-    IsNotEmpty(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "role", void 0);
 __decorate([
-    ApiProperty({
+    (0, swagger_1.ApiProperty)({
         example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",
         description: 'Base64-encoded user profile image',
     }),
-    IsOptional(),
-    IsString(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "image", void 0);
 //# sourceMappingURL=update-user.dto.js.map

@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,18 +11,20 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-import { Body, Controller, Get, Post, Put, Param, Query, UseGuards, } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
-import { MeterMgtService } from './meter-mgt.service';
-import { MeterDto } from "../../dto/meter.dto";
-import { VendPowerDto } from "../../dto/vend-power.dto";
-import { AuthGuard } from "../../common/guards/auth.guard";
-import { RoleGuard } from "../../common/guards/roles.guard";
-import { Roles } from "../../common/decorators/roles.decorstor";
-import { Role } from "../../common/enum/roles.enum";
-import { v4 as uuid } from 'uuid';
-import { DisconnectMeterDto } from "../../dto/iec-dto/disconnect-meter.dto";
-import { ReconnectMeterDto } from "../../dto/iec-dto/reconnect-meter.dto";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MeterMgtController = void 0;
+const common_1 = require("@nestjs/common");
+const swagger_1 = require("@nestjs/swagger");
+const meter_mgt_service_1 = require("./meter-mgt.service");
+const meter_dto_1 = require("../../dto/meter.dto");
+const vend_power_dto_1 = require("../../dto/vend-power.dto");
+const auth_guard_1 = require("../../common/guards/auth.guard");
+const roles_guard_1 = require("../../common/guards/roles.guard");
+const roles_decorstor_1 = require("../../common/decorators/roles.decorstor");
+const roles_enum_1 = require("../../common/enum/roles.enum");
+const uuid_1 = require("uuid");
+const disconnect_meter_dto_1 = require("../../dto/iec-dto/disconnect-meter.dto");
+const reconnect_meter_dto_1 = require("../../dto/iec-dto/reconnect-meter.dto");
 let MeterMgtController = class MeterMgtController {
     meterMgtService;
     constructor(meterMgtService) {
@@ -55,7 +58,7 @@ let MeterMgtController = class MeterMgtController {
         return this.meterMgtService.trialVend(dto);
     }
     async vend(dto) {
-        const transId = uuid().replace(/-/g, '').slice(0, 16);
+        const transId = (0, uuid_1.v4)().replace(/-/g, '').slice(0, 16);
         return this.meterMgtService.vend(dto, transId);
     }
     ;
@@ -68,137 +71,137 @@ let MeterMgtController = class MeterMgtController {
     }
     ;
 };
+exports.MeterMgtController = MeterMgtController;
 __decorate([
-    Post('add-meter'),
-    Roles(Role.SUPERADMIN),
-    ApiOperation({ summary: 'Add meter to the DB and assign to an estate' }),
-    __param(0, Body()),
+    (0, common_1.Post)('add-meter'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Add meter to the DB and assign to an estate' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [MeterDto]),
+    __metadata("design:paramtypes", [meter_dto_1.MeterDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "addMeter", null);
 __decorate([
-    Post('assign-meter-to-address'),
-    Roles(Role.SUPERADMIN, Role.ADMIN),
-    ApiOperation({ summary: 'Assign meter to an estate address' }),
-    __param(0, Body()),
+    (0, common_1.Post)('assign-meter-to-address'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Assign meter to an estate address' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [MeterDto]),
+    __metadata("design:paramtypes", [meter_dto_1.MeterDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "assignMeterToAddress", null);
 __decorate([
-    Put('remove-estate-meter'),
-    Roles(Role.SUPERADMIN, Role.ADMIN),
-    ApiOperation({ summary: 'Update meter details and sync with vendor' }),
-    ApiResponse({ status: 200, description: 'Meter updated successfully' }),
-    __param(0, Body()),
+    (0, common_1.Put)('remove-estate-meter'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Update meter details and sync with vendor' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Meter updated successfully' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [MeterDto]),
+    __metadata("design:paramtypes", [meter_dto_1.MeterDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "removeMeter", null);
 __decorate([
-    Put('reassign-meter'),
-    Roles(Role.SUPERADMIN, Role.ADMIN),
-    ApiOperation({ summary: 'Update meter details and sync with vendor' }),
-    ApiResponse({ status: 200, description: 'Meter updated successfully' }),
-    __param(0, Body()),
+    (0, common_1.Put)('reassign-meter'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Update meter details and sync with vendor' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Meter updated successfully' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [MeterDto]),
+    __metadata("design:paramtypes", [meter_dto_1.MeterDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "reassignMeter", null);
 __decorate([
-    Put(':id'),
-    Roles(Role.SUPERADMIN, Role.ADMIN),
-    ApiOperation({ summary: 'Update meter details and sync with vendor' }),
-    ApiParam({ name: 'id', description: 'Meter ID', example: '671fc9b232a...' }),
-    ApiResponse({ status: 200, description: 'Meter updated successfully' }),
-    __param(0, Param('id')),
-    __param(1, Body()),
+    (0, common_1.Put)(':id'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Update meter details and sync with vendor' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Meter ID', example: '671fc9b232a...' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Meter updated successfully' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, MeterDto]),
+    __metadata("design:paramtypes", [String, meter_dto_1.MeterDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "updateMeter", null);
 __decorate([
-    Get(':id'),
-    Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT),
-    ApiOperation({ summary: 'Get a single meter by its database ID' }),
-    ApiParam({ name: 'id', description: 'Meter ID', example: '6720c8a91b9f4f00123abcde' }),
-    ApiResponse({ status: 200, description: 'Meter retrieved successfully' }),
-    __param(0, Param('id')),
+    (0, common_1.Get)(':id'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({ summary: 'Get a single meter by its database ID' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Meter ID', example: '6720c8a91b9f4f00123abcde' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Meter retrieved successfully' }),
+    __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "getMeter", null);
 __decorate([
-    Get('address/:addressId'),
-    Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT),
-    ApiOperation({ summary: 'Get a single meter by its database ID' }),
-    ApiParam({ name: 'addressId', description: 'Meter ID', example: '6720c8a91b9f4f00123abcde' }),
-    ApiResponse({ status: 200, description: 'Meter retrieved successfully' }),
-    __param(0, Param('addressId')),
+    (0, common_1.Get)('address/:addressId'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({ summary: 'Get a single meter by its database ID' }),
+    (0, swagger_1.ApiParam)({ name: 'addressId', description: 'Meter ID', example: '6720c8a91b9f4f00123abcde' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Meter retrieved successfully' }),
+    __param(0, (0, common_1.Param)('addressId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "getMeterByAddress", null);
 __decorate([
-    Get('estate/:estateId'),
-    Roles(Role.SUPERADMIN, Role.ADMIN),
-    ApiOperation({ summary: 'Get all meters in a specific estate (with pagination)' }),
-    ApiParam({ name: 'estateId', description: 'Estate ID', example: '6720c8a91b9f4f00123abcde' }),
-    ApiQuery({ name: 'page', required: false, example: 1 }),
-    ApiQuery({ name: 'limit', required: false, example: 10 }),
-    ApiResponse({ status: 200, description: 'Meters retrieved successfully' }),
-    __param(0, Param('estateId')),
-    __param(1, Query('page')),
-    __param(2, Query('limit')),
+    (0, common_1.Get)('estate/:estateId'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all meters in a specific estate (with pagination)' }),
+    (0, swagger_1.ApiParam)({ name: 'estateId', description: 'Estate ID', example: '6720c8a91b9f4f00123abcde' }),
+    (0, swagger_1.ApiQuery)({ name: 'page', required: false, example: 1 }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, example: 10 }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Meters retrieved successfully' }),
+    __param(0, (0, common_1.Param)('estateId')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "getMetersByEstate", null);
 __decorate([
-    Post('vend/trial'),
-    Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT),
-    ApiOperation({ summary: 'Perform a trial vend to preview vend cost & parameters' }),
-    ApiResponse({ status: 200, description: 'Trial vend successful' }),
-    __param(0, Body()),
+    (0, common_1.Post)('vend/trial'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({ summary: 'Perform a trial vend to preview vend cost & parameters' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Trial vend successful' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [VendPowerDto]),
+    __metadata("design:paramtypes", [vend_power_dto_1.VendPowerDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "trialVend", null);
 __decorate([
-    Post('vend'),
-    Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT),
-    ApiOperation({ summary: 'Perform a real vend and generate token' }),
-    ApiResponse({ status: 200, description: 'Credit vend successful - token generated' }),
-    __param(0, Body()),
+    (0, common_1.Post)('vend'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({ summary: 'Perform a real vend and generate token' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Credit vend successful - token generated' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [VendPowerDto]),
+    __metadata("design:paramtypes", [vend_power_dto_1.VendPowerDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "vend", null);
 __decorate([
-    Post('disconnect-meter'),
-    Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT),
-    ApiOperation({ summary: 'Disconnect meter' }),
-    __param(0, Body()),
+    (0, common_1.Post)('disconnect-meter'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({ summary: 'Disconnect meter' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [DisconnectMeterDto]),
+    __metadata("design:paramtypes", [disconnect_meter_dto_1.DisconnectMeterDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "disconnectMeter", null);
 __decorate([
-    Post('reconnect-meter'),
-    Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT),
-    ApiOperation({ summary: 'Reconnect meter' }),
-    __param(0, Body()),
+    (0, common_1.Post)('reconnect-meter'),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiOperation)({ summary: 'Reconnect meter' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [ReconnectMeterDto]),
+    __metadata("design:paramtypes", [reconnect_meter_dto_1.ReconnectMeterDto]),
     __metadata("design:returntype", Promise)
 ], MeterMgtController.prototype, "reconnectMeter", null);
-MeterMgtController = __decorate([
-    ApiTags('Meter Management'),
-    ApiBearerAuth('access-token'),
-    UseGuards(AuthGuard, RoleGuard),
-    Controller('/api/v1/meters'),
-    __metadata("design:paramtypes", [MeterMgtService])
+exports.MeterMgtController = MeterMgtController = __decorate([
+    (0, swagger_1.ApiTags)('Meter Management'),
+    (0, swagger_1.ApiBearerAuth)('access-token'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, roles_guard_1.RoleGuard),
+    (0, common_1.Controller)('/api/v1/meters'),
+    __metadata("design:paramtypes", [meter_mgt_service_1.MeterMgtService])
 ], MeterMgtController);
-export { MeterMgtController };
 //# sourceMappingURL=meter-mgt.controller.js.map

@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,17 +11,19 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-import { Injectable, BadRequestException, NotFoundException, UnauthorizedException, ForbiddenException, ConflictException, InternalServerErrorException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { User } from "../../schema/user.schema";
-import { toResponseObject } from "../../common/utils/transform.util";
-import { ConfigService } from '@nestjs/config';
-import * as Nodemailer from "nodemailer";
-import * as argon from "argon2";
-import { CloudinaryService } from "../../common/utils/cloudinary/cloudinary.service";
-import { WalletMgtService } from '../wallet-mgt/wallet-mgt.service';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuthMgtService = void 0;
+const common_1 = require("@nestjs/common");
+const jwt_1 = require("@nestjs/jwt");
+const mongoose_1 = require("@nestjs/mongoose");
+const mongoose_2 = require("mongoose");
+const user_schema_1 = require("../../schema/user.schema");
+const transform_util_1 = require("../../common/utils/transform.util");
+const config_1 = require("@nestjs/config");
+const Nodemailer = require("nodemailer");
+const argon = require("argon2");
+const cloudinary_service_1 = require("../../common/utils/cloudinary/cloudinary.service");
+const wallet_mgt_service_1 = require("../wallet-mgt/wallet-mgt.service");
 let AuthMgtService = class AuthMgtService {
     userModel;
     jwt;
@@ -40,12 +43,12 @@ let AuthMgtService = class AuthMgtService {
             email: normalizeEmail
         });
         if (exist) {
-            throw new ConflictException("User with this email already exist.");
+            throw new common_1.ConflictException("User with this email already exist.");
         }
         let imageUrl;
         if (dto.image) {
             if (!dto.image.startsWith("data:image/")) {
-                throw new BadRequestException("Invalid image. Image must be a base64-encoded");
+                throw new common_1.BadRequestException("Invalid image. Image must be a base64-encoded");
             }
             try {
                 const publicId = `user_profiles/${Date.now()}`;
@@ -53,7 +56,7 @@ let AuthMgtService = class AuthMgtService {
                 imageUrl = uploadResponse.secure_url;
             }
             catch (error) {
-                throw new BadRequestException(error.message);
+                throw new common_1.BadRequestException(error.message);
             }
         }
         const hash = await argon.hash(dto.password);
@@ -87,16 +90,16 @@ let AuthMgtService = class AuthMgtService {
         }
         catch (error) {
             if (error.code === 11000) {
-                throw new ConflictException("User with this email already exist.");
+                throw new common_1.ConflictException("User with this email already exist.");
             }
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async sendOtp(email, otp, firstName, lastName) {
         const normalizedEmail = email.toLowerCase().trim();
         const user = await this.userModel.findOne({ email: normalizedEmail });
         if (!user)
-            throw new NotFoundException('User not found.');
+            throw new common_1.NotFoundException('User not found.');
         const transporter = Nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 587,
@@ -116,7 +119,7 @@ let AuthMgtService = class AuthMgtService {
             await transporter.sendMail(mailOptions);
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async signIn(dto, res) {
@@ -124,24 +127,24 @@ let AuthMgtService = class AuthMgtService {
             const normalizedEmail = dto.email.toLowerCase().trim();
             const user = await this.userModel.findOne({ email: normalizedEmail });
             if (!user) {
-                throw new NotFoundException('User not found.');
+                throw new common_1.NotFoundException('User not found.');
             }
             if (user.lockUntil && user.lockUntil > new Date()) {
-                throw new UnauthorizedException(`Account is locked. Try again after ${user.lockUntil.toLocaleTimeString()}.`);
+                throw new common_1.UnauthorizedException(`Account is locked. Try again after ${user.lockUntil.toLocaleTimeString()}.`);
             }
             if (!user.isVerified) {
-                throw new UnauthorizedException("user is not verified");
+                throw new common_1.UnauthorizedException("user is not verified");
             }
-            const isPasswordCorrect = await import('argon2').then(argon2 => argon2.verify(user.hash, dto.password));
+            const isPasswordCorrect = await Promise.resolve().then(() => require('argon2')).then(argon2 => argon2.verify(user.hash, dto.password));
             if (!isPasswordCorrect) {
                 user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
                 if (user.failedLoginAttempts >= 3) {
                     user.lockUntil = new Date(Date.now() + 30 * 60 * 1000);
                     await user.save();
-                    throw new UnauthorizedException('Account locked due to too many failed login attempts. Try again after 30 minutes.');
+                    throw new common_1.UnauthorizedException('Account locked due to too many failed login attempts. Try again after 30 minutes.');
                 }
                 await user.save();
-                throw new UnauthorizedException('Invalid password.');
+                throw new common_1.UnauthorizedException('Invalid password.');
             }
             const payload = {
                 sub: user._id.toString(),
@@ -159,25 +162,25 @@ let AuthMgtService = class AuthMgtService {
             });
             return {
                 message: 'Signed in successfully',
-                data: toResponseObject(user),
+                data: (0, transform_util_1.toResponseObject)(user),
                 accessToken: tokens.accessToken
             };
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async pinLogin(email, pin, res) {
         try {
             const user = await this.userModel.findOne({ email });
             if (!user) {
-                throw new BadRequestException("User does not exist.");
+                throw new common_1.BadRequestException("User does not exist.");
             }
             if (user.lockUntil && user.lockUntil > new Date()) {
-                throw new UnauthorizedException(`Account is locked. Try again after ${user.lockUntil.toLocaleTimeString()}`);
+                throw new common_1.UnauthorizedException(`Account is locked. Try again after ${user.lockUntil.toLocaleTimeString()}`);
             }
             if (!user.isVerified) {
-                throw new UnauthorizedException(`Account is not verified.`);
+                throw new common_1.UnauthorizedException(`Account is not verified.`);
             }
             const isPinValid = await argon.verify(user.pinHash, pin);
             if (!isPinValid) {
@@ -185,10 +188,10 @@ let AuthMgtService = class AuthMgtService {
                 if (user.failedLoginAttempts >= 3) {
                     user.lockUntil = new Date(Date.now() + 30 * 60 * 1000);
                     await user.save();
-                    throw new UnauthorizedException("Account has been locked due to too many failed login attempts. Try again after 30 minutes.");
+                    throw new common_1.UnauthorizedException("Account has been locked due to too many failed login attempts. Try again after 30 minutes.");
                 }
                 await user.save();
-                throw new UnauthorizedException("Invalid Pin");
+                throw new common_1.UnauthorizedException("Invalid Pin");
             }
             user.failedLoginAttempts = 0;
             user.lockUntil = undefined;
@@ -209,12 +212,12 @@ let AuthMgtService = class AuthMgtService {
             });
             return {
                 message: 'Signed in successfully',
-                data: toResponseObject(user),
+                data: (0, transform_util_1.toResponseObject)(user),
                 accessToken: tokens.accessToken
             };
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async inviteUser(dto) {
@@ -223,11 +226,11 @@ let AuthMgtService = class AuthMgtService {
             const normalizedEmail = email.toLowerCase().trim();
             const existingUser = await this.userModel.findOne({ email: normalizedEmail });
             if (existingUser) {
-                throw new ConflictException('User with this email already exists');
+                throw new common_1.ConflictException('User with this email already exists');
             }
             if (role === 'resident') {
                 if (!addressId) {
-                    throw new BadRequestException('Address ID is required for residents.');
+                    throw new common_1.BadRequestException('Address ID is required for residents.');
                 }
                 const addressInUse = await this.userModel.findOne({
                     estateId,
@@ -235,7 +238,7 @@ let AuthMgtService = class AuthMgtService {
                     role: 'resident',
                 });
                 if (addressInUse) {
-                    throw new ConflictException('This address has already been assigned to a resident.');
+                    throw new common_1.ConflictException('This address has already been assigned to a resident.');
                 }
             }
             const tempPassword = this.generateStrongPassword();
@@ -327,7 +330,7 @@ let AuthMgtService = class AuthMgtService {
             };
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async verifyInvitation(dto) {
@@ -335,18 +338,18 @@ let AuthMgtService = class AuthMgtService {
             const normalizedEmail = dto.email.toLowerCase().trim();
             const user = await this.userModel.findOne({ email: normalizedEmail });
             if (!user) {
-                throw new NotFoundException('User not found.');
+                throw new common_1.NotFoundException('User not found.');
             }
             if (user.invitationStatus !== 'not completed') {
-                throw new BadRequestException('Invitation not valid or already verified.');
+                throw new common_1.BadRequestException('Invitation not valid or already verified.');
             }
             const isMatch = await argon.verify(user.hash, dto.tempPassword);
             if (!isMatch) {
-                throw new UnauthorizedException('Invalid temporary password.');
+                throw new common_1.UnauthorizedException('Invalid temporary password.');
             }
             const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()_+=[\]{};':"\\|,.<>/?-]).{8,}$/;
             if (!passwordRegex.test(dto.newPassword)) {
-                throw new BadRequestException('Password must be at least 8 characters long, include uppercase, lowercase, number, and special character.');
+                throw new common_1.BadRequestException('Password must be at least 8 characters long, include uppercase, lowercase, number, and special character.');
             }
             const hashedNewPassword = await argon.hash(dto.newPassword);
             user.hash = hashedNewPassword;
@@ -361,7 +364,7 @@ let AuthMgtService = class AuthMgtService {
             };
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async completeSignup(token, dto) {
@@ -373,7 +376,7 @@ let AuthMgtService = class AuthMgtService {
                 });
             }
             catch (error) {
-                throw new BadRequestException('Invalid or expired invite token');
+                throw new common_1.BadRequestException('Invalid or expired invite token');
             }
             const { email, estateId, role, addressId } = payload;
             const pendingUser = await this.userModel.findOne({
@@ -384,7 +387,7 @@ let AuthMgtService = class AuthMgtService {
                 invitationStatus: 'pending',
             });
             if (!pendingUser) {
-                throw new BadRequestException('Invalid or already used invite');
+                throw new common_1.BadRequestException('Invalid or already used invite');
             }
             const hash = await argon.hash(dto.password);
             let imageUrl = pendingUser.image;
@@ -444,14 +447,14 @@ let AuthMgtService = class AuthMgtService {
             };
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async forgotPassword(dto) {
         const normalizedEmail = dto.email.toLowerCase().trim();
         const user = await this.userModel.findOne({ email: normalizedEmail });
         if (!user)
-            throw new NotFoundException('User not found.');
+            throw new common_1.NotFoundException('User not found.');
         const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
         user.resetPasswordToken = resetToken;
         user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000);
@@ -476,7 +479,7 @@ let AuthMgtService = class AuthMgtService {
             };
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async resetPassword(dto) {
@@ -485,13 +488,13 @@ let AuthMgtService = class AuthMgtService {
             const { resetToken, newPassword } = dto;
             const user = await this.userModel.findOne({ email: normalizedEmail });
             if (!user) {
-                throw new NotFoundException('User not found.');
+                throw new common_1.NotFoundException('User not found.');
             }
             if (!user.resetPasswordToken ||
                 !user.resetPasswordExpires ||
                 user.resetPasswordToken !== resetToken ||
                 user.resetPasswordExpires < new Date()) {
-                throw new BadRequestException('Invalid or expired reset token.');
+                throw new common_1.BadRequestException('Invalid or expired reset token.');
             }
             user.hash = await argon.hash(newPassword);
             user.resetPasswordToken = undefined;
@@ -503,16 +506,16 @@ let AuthMgtService = class AuthMgtService {
             };
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async resendOtp(dto) {
         const normalizedEmail = dto.email.toLowerCase().trim();
         const user = await this.userModel.findOne({ email: normalizedEmail });
         if (!user)
-            throw new NotFoundException('User not found.');
+            throw new common_1.NotFoundException('User not found.');
         if (user.isVerified)
-            throw new BadRequestException('User already verified.');
+            throw new common_1.BadRequestException('User already verified.');
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpires = new Date();
         otpExpires.setMinutes(otpExpires.getMinutes() + 10);
@@ -524,24 +527,24 @@ let AuthMgtService = class AuthMgtService {
             return { message: 'OTP resent successfully.' };
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async verifyOtp(dto) {
         const normalizedEmail = dto.email.toLowerCase().trim();
         const user = await this.userModel.findOne({ email: normalizedEmail });
         if (!user) {
-            throw new NotFoundException('User not found.');
+            throw new common_1.NotFoundException('User not found.');
         }
         if (user.isVerified) {
-            throw new BadRequestException('User already verified');
+            throw new common_1.BadRequestException('User already verified');
         }
         if (!user.otp || !user.otpExpiresAt) {
-            throw new BadRequestException('OTP not found');
+            throw new common_1.BadRequestException('OTP not found');
         }
         const isOtpExpired = user.otpExpiresAt < new Date();
         if (user.otp !== dto.otp || isOtpExpired)
-            throw new BadRequestException('Invalid OTP');
+            throw new common_1.BadRequestException('Invalid OTP');
         user.isVerified = true;
         user.otp = '';
         user.otpExpiresAt = new Date(0);
@@ -550,7 +553,7 @@ let AuthMgtService = class AuthMgtService {
             return { message: 'User verified successfully' };
         }
         catch (error) {
-            throw new BadRequestException('Could not verify user. Please try again.');
+            throw new common_1.BadRequestException('Could not verify user. Please try again.');
         }
     }
     async refreshTokens(email, refreshToken) {
@@ -558,14 +561,14 @@ let AuthMgtService = class AuthMgtService {
             const normalizedEmail = email.toLowerCase().trim();
             const user = await this.userModel.findOne({ email: normalizedEmail });
             if (!user) {
-                throw new ForbiddenException('Access Denied.');
+                throw new common_1.ForbiddenException('Access Denied.');
             }
             if (!user.refreshToken) {
-                throw new ForbiddenException("No refresh token stored");
+                throw new common_1.ForbiddenException("No refresh token stored");
             }
             const isValid = await argon.verify(user.refreshToken, refreshToken);
             if (!isValid) {
-                throw new ForbiddenException('Invalid refresh token');
+                throw new common_1.ForbiddenException('Invalid refresh token');
             }
             const payload = {
                 sub: user._id.toString(),
@@ -577,21 +580,21 @@ let AuthMgtService = class AuthMgtService {
             return tokens;
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async updateRefreshToken(email, refreshToken) {
         try {
             const user = await this.userModel.findOne({ email: email.toLowerCase() });
             if (!user) {
-                throw new UnauthorizedException("User not found");
+                throw new common_1.UnauthorizedException("User not found");
             }
             const hashedRefreshToken = await argon.hash(refreshToken);
             user.refreshToken = hashedRefreshToken;
             await user.save();
         }
         catch (error) {
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
     async generateToken(payload) {
@@ -633,18 +636,18 @@ let AuthMgtService = class AuthMgtService {
     async getUserById(userId) {
         try {
             if (!userId) {
-                throw new BadRequestException('User ID is required.');
+                throw new common_1.BadRequestException('User ID is required.');
             }
             if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
-                throw new BadRequestException('Invalid user ID format.');
+                throw new common_1.BadRequestException('Invalid user ID format.');
             }
             const user = await this.userModel
                 .findById(userId)
                 .select('-hash -otp -otpExpiresAt -resetPasswordToken -resetPasswordExpires');
             if (!user) {
-                throw new UnauthorizedException('User not found.');
+                throw new common_1.UnauthorizedException('User not found.');
             }
-            const signedInUser = toResponseObject(user);
+            const signedInUser = (0, transform_util_1.toResponseObject)(user);
             return {
                 success: true,
                 message: 'Signed in user retrieved successfully.',
@@ -653,13 +656,13 @@ let AuthMgtService = class AuthMgtService {
         }
         catch (error) {
             console.error('getUserById error:', error);
-            if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+            if (error instanceof common_1.BadRequestException || error instanceof common_1.UnauthorizedException) {
                 throw error;
             }
             if (error.name === 'CastError') {
-                throw new BadRequestException('Invalid user ID.');
+                throw new common_1.BadRequestException('Invalid user ID.');
             }
-            throw new InternalServerErrorException('Failed to retrieve user.');
+            throw new common_1.InternalServerErrorException('Failed to retrieve user.');
         }
     }
     async signOut(email, res) {
@@ -680,18 +683,18 @@ let AuthMgtService = class AuthMgtService {
             return { message: 'Signed out successfully.' };
         }
         catch (error) {
-            throw new BadRequestException('Could not sign out. Please try again.');
+            throw new common_1.BadRequestException('Could not sign out. Please try again.');
         }
     }
 };
-AuthMgtService = __decorate([
-    Injectable(),
-    __param(0, InjectModel(User.name)),
-    __metadata("design:paramtypes", [Model,
-        JwtService,
-        ConfigService,
-        CloudinaryService,
-        WalletMgtService])
+exports.AuthMgtService = AuthMgtService;
+exports.AuthMgtService = AuthMgtService = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
+    __metadata("design:paramtypes", [mongoose_2.Model,
+        jwt_1.JwtService,
+        config_1.ConfigService,
+        cloudinary_service_1.CloudinaryService,
+        wallet_mgt_service_1.WalletMgtService])
 ], AuthMgtService);
-export { AuthMgtService };
 //# sourceMappingURL=auth-mgt.service.js.map

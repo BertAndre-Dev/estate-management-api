@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,13 +9,15 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var AuthService_1;
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { SignatureUtil } from "../../common/utils/signature.utils";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuthService = void 0;
+const common_1 = require("@nestjs/common");
+const axios_1 = require("@nestjs/axios");
+const rxjs_1 = require("rxjs");
+const signature_utils_1 = require("../../common/utils/signature.utils");
 let AuthService = AuthService_1 = class AuthService {
     http;
-    logger = new Logger(AuthService_1.name);
+    logger = new common_1.Logger(AuthService_1.name);
     baseUrl;
     creds;
     constructor(http) {
@@ -51,7 +54,7 @@ let AuthService = AuthService_1 = class AuthService {
     async getAuthToken() {
         try {
             const seed = this.generateSeed();
-            const key = SignatureUtil.deriveKey(this.creds.user, this.creds.password, this.creds.userKey, seed);
+            const key = signature_utils_1.SignatureUtil.deriveKey(this.creds.user, this.creds.password, this.creds.userKey, seed);
             const payload = {
                 version: 1,
                 clientId: this.creds.clientId,
@@ -60,11 +63,11 @@ let AuthService = AuthService_1 = class AuthService {
                 user: this.creds.user,
                 seed,
             };
-            const sign = SignatureUtil.generateSignature(payload, key);
+            const sign = signature_utils_1.SignatureUtil.generateSignature(payload, key);
             const body = { ...payload, sign, signType: 'MD5' };
             this.logger.debug('🧾 Auth Payload: ' + JSON.stringify(body, null, 2));
             this.logger.debug(`🌍 API Endpoint: ${this.baseUrl}/authToken`);
-            const { data } = await firstValueFrom(this.http.post(`${this.baseUrl}/authToken`, body, {
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.http.post(`${this.baseUrl}/authToken`, body, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
@@ -72,19 +75,19 @@ let AuthService = AuthService_1 = class AuthService {
             }));
             this.logger.debug(`📩 Auth Response: ${JSON.stringify(data)}`);
             if (!data || data.state !== 0) {
-                throw new BadRequestException(`Auth failed: ${data?.message || 'Unknown error'}`);
+                throw new common_1.BadRequestException(`Auth failed: ${data?.message || 'Unknown error'}`);
             }
             return data.tokenValue;
         }
         catch (error) {
             this.logger.error('Auth token fetch failed:', error);
-            throw new BadRequestException(error.message);
+            throw new common_1.BadRequestException(error.message);
         }
     }
 };
-AuthService = AuthService_1 = __decorate([
-    Injectable(),
-    __metadata("design:paramtypes", [HttpService])
+exports.AuthService = AuthService;
+exports.AuthService = AuthService = AuthService_1 = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [axios_1.HttpService])
 ], AuthService);
-export { AuthService };
 //# sourceMappingURL=auth.service.js.map

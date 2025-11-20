@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -8,12 +9,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var RealtimeGateway_1;
-import { WebSocketGateway, WebSocketServer, } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
-import { Server } from 'socket.io';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RealtimeGateway = void 0;
+const websockets_1 = require("@nestjs/websockets");
+const common_1 = require("@nestjs/common");
+const socket_io_1 = require("socket.io");
 let RealtimeGateway = RealtimeGateway_1 = class RealtimeGateway {
     server;
-    logger = new Logger(RealtimeGateway_1.name);
+    logger = new common_1.Logger(RealtimeGateway_1.name);
     afterInit() {
         this.logger.log('Realtime Gateway Initialized');
     }
@@ -36,16 +39,16 @@ let RealtimeGateway = RealtimeGateway_1 = class RealtimeGateway {
         this.server.emit('meter.event', event);
     }
 };
+exports.RealtimeGateway = RealtimeGateway;
 __decorate([
-    WebSocketServer(),
-    __metadata("design:type", Server)
+    (0, websockets_1.WebSocketServer)(),
+    __metadata("design:type", socket_io_1.Server)
 ], RealtimeGateway.prototype, "server", void 0);
-RealtimeGateway = RealtimeGateway_1 = __decorate([
-    WebSocketGateway({
+exports.RealtimeGateway = RealtimeGateway = RealtimeGateway_1 = __decorate([
+    (0, websockets_1.WebSocketGateway)({
         cors: {
             origin: '*',
         },
     })
 ], RealtimeGateway);
-export { RealtimeGateway };
 //# sourceMappingURL=real-time.gateway.js.map

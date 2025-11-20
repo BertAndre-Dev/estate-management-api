@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,15 +11,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-import { Controller, Post, Body, Query, Get, HttpException, HttpStatus, UseGuards, Param } from '@nestjs/common';
-import { PaymentMgtService } from './payment-mgt.service';
-import { Role } from "../../common/enum/roles.enum";
-import { Roles } from "../../common/decorators/roles.decorstor";
-import { AuthGuard } from "../../common/guards/auth.guard";
-import { RoleGuard } from "../../common/guards/roles.guard";
-import { ApiBearerAuth, ApiBody, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { InitializePaymentDto } from "../../dto/flutter-wave.dto";
-import { PaymentType } from "../../common/enum/payment-type.enum";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PaymentMgtController = void 0;
+const common_1 = require("@nestjs/common");
+const payment_mgt_service_1 = require("./payment-mgt.service");
+const roles_enum_1 = require("../../common/enum/roles.enum");
+const roles_decorstor_1 = require("../../common/decorators/roles.decorstor");
+const auth_guard_1 = require("../../common/guards/auth.guard");
+const roles_guard_1 = require("../../common/guards/roles.guard");
+const swagger_1 = require("@nestjs/swagger");
+const flutter_wave_dto_1 = require("../../dto/flutter-wave.dto");
+const payment_type_enum_1 = require("../../common/enum/payment-type.enum");
 let PaymentMgtController = class PaymentMgtController {
     payment;
     constructor(payment) {
@@ -29,18 +32,18 @@ let PaymentMgtController = class PaymentMgtController {
             return await this.payment.initializePayment(body);
         }
         catch (error) {
-            throw new HttpException(error?.response?.data || 'Payment initialization failed', HttpStatus.BAD_REQUEST);
+            throw new common_1.HttpException(error?.response?.data || 'Payment initialization failed', common_1.HttpStatus.BAD_REQUEST);
         }
     }
     async verifyPayment(tx_ref, paymentType) {
         if (!paymentType) {
-            throw new HttpException(`paymentType query parameter is required. Allowed values: ${Object.values(PaymentType).join(', ')}`, HttpStatus.BAD_REQUEST);
+            throw new common_1.HttpException(`paymentType query parameter is required. Allowed values: ${Object.values(payment_type_enum_1.PaymentType).join(', ')}`, common_1.HttpStatus.BAD_REQUEST);
         }
         try {
             return await this.payment.verifyPayment(tx_ref, paymentType);
         }
         catch (error) {
-            throw new HttpException(error?.response?.data?.message || 'Payment verification failed', HttpStatus.BAD_REQUEST);
+            throw new common_1.HttpException(error?.response?.data?.message || 'Payment verification failed', common_1.HttpStatus.BAD_REQUEST);
         }
     }
     async getPaymentMethods(country) {
@@ -53,48 +56,48 @@ let PaymentMgtController = class PaymentMgtController {
             };
         }
         catch (error) {
-            throw new HttpException({ success: false, message: error.message || 'Failed to retrieve payment methods.' }, HttpStatus.BAD_REQUEST);
+            throw new common_1.HttpException({ success: false, message: error.message || 'Failed to retrieve payment methods.' }, common_1.HttpStatus.BAD_REQUEST);
         }
     }
 };
+exports.PaymentMgtController = PaymentMgtController;
 __decorate([
-    Post('initialize'),
-    ApiBody({ type: InitializePaymentDto }),
-    __param(0, Body()),
+    (0, common_1.Post)('initialize'),
+    (0, swagger_1.ApiBody)({ type: flutter_wave_dto_1.InitializePaymentDto }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [InitializePaymentDto]),
+    __metadata("design:paramtypes", [flutter_wave_dto_1.InitializePaymentDto]),
     __metadata("design:returntype", Promise)
 ], PaymentMgtController.prototype, "initializePayment", null);
 __decorate([
-    Get('verify/:tx_ref'),
-    ApiParam({ name: 'tx_ref', required: true }),
-    ApiQuery({
+    (0, common_1.Get)('verify/:tx_ref'),
+    (0, swagger_1.ApiParam)({ name: 'tx_ref', required: true }),
+    (0, swagger_1.ApiQuery)({
         name: 'paymentType',
         required: true,
-        enum: PaymentType,
+        enum: payment_type_enum_1.PaymentType,
         description: 'fundWallet | serviceCharge | electricity'
     }),
-    __param(0, Param('tx_ref')),
-    __param(1, Query('paymentType')),
+    __param(0, (0, common_1.Param)('tx_ref')),
+    __param(1, (0, common_1.Query)('paymentType')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], PaymentMgtController.prototype, "verifyPayment", null);
 __decorate([
-    Get('payment-methods/:country'),
-    ApiParam({ name: 'country', type: String, required: true }),
-    __param(0, Param('country')),
+    (0, common_1.Get)('payment-methods/:country'),
+    (0, swagger_1.ApiParam)({ name: 'country', type: String, required: true }),
+    __param(0, (0, common_1.Param)('country')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PaymentMgtController.prototype, "getPaymentMethods", null);
-PaymentMgtController = __decorate([
-    ApiTags('Payment Management'),
-    UseGuards(AuthGuard, RoleGuard),
-    Roles(Role.SUPERADMIN, Role.ADMIN, Role.RESIDENT),
-    ApiBearerAuth('access-token'),
-    Controller('/api/v1/payment-mgt'),
-    __metadata("design:paramtypes", [PaymentMgtService])
+exports.PaymentMgtController = PaymentMgtController = __decorate([
+    (0, swagger_1.ApiTags)('Payment Management'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, roles_guard_1.RoleGuard),
+    (0, roles_decorstor_1.Roles)(roles_enum_1.Role.SUPERADMIN, roles_enum_1.Role.ADMIN, roles_enum_1.Role.RESIDENT),
+    (0, swagger_1.ApiBearerAuth)('access-token'),
+    (0, common_1.Controller)('/api/v1/payment-mgt'),
+    __metadata("design:paramtypes", [payment_mgt_service_1.PaymentMgtService])
 ], PaymentMgtController);
-export { PaymentMgtController };
 //# sourceMappingURL=payment-mgt.controller.js.map

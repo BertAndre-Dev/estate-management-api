@@ -1,3 +1,4 @@
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,56 +8,59 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-export class VisitorDetails {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.VisitorSchema = exports.Visitor = exports.VisitorDetails = void 0;
+const mongoose_1 = require("@nestjs/mongoose");
+class VisitorDetails {
     firstName;
     lastName;
     phone;
     purpose;
 }
+exports.VisitorDetails = VisitorDetails;
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], VisitorDetails.prototype, "firstName", void 0);
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], VisitorDetails.prototype, "lastName", void 0);
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], VisitorDetails.prototype, "phone", void 0);
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], VisitorDetails.prototype, "purpose", void 0);
-const VisitorDetailsSchema = SchemaFactory.createForClass(VisitorDetails);
+const VisitorDetailsSchema = mongoose_1.SchemaFactory.createForClass(VisitorDetails);
 let Visitor = class Visitor {
     residentId;
     addressId;
     visitor;
 };
+exports.Visitor = Visitor;
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], Visitor.prototype, "residentId", void 0);
 __decorate([
-    Prop(),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], Visitor.prototype, "addressId", void 0);
 __decorate([
-    Prop({
+    (0, mongoose_1.Prop)({
         type: [VisitorDetailsSchema],
         required: true,
         default: []
     }),
     __metadata("design:type", Array)
 ], Visitor.prototype, "visitor", void 0);
-Visitor = __decorate([
-    Schema({
+exports.Visitor = Visitor = __decorate([
+    (0, mongoose_1.Schema)({
         timestamps: true
     })
 ], Visitor);
-export { Visitor };
-export const VisitorSchema = SchemaFactory.createForClass(Visitor);
+exports.VisitorSchema = mongoose_1.SchemaFactory.createForClass(Visitor);
 //# sourceMappingURL=visitor.schema.js.map
